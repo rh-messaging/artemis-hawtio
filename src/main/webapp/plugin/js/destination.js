@@ -73,15 +73,14 @@ var ARTEMIS = (function(ARTEMIS) {
             }
         };
         $scope.purgeDestination = function () {
-            var mbean = workspace.getSelectedMBeanName();
             var selection = workspace.selection;
             var entries = selection.entries;
-            if (mbean && selection && jolokia && entries) {
+            if (selection && jolokia && entries) {
                 var name = entries["Destination"] || entries["destinationName"] || selection.title;
                 name = name.unescapeHTML();
                 var operation = "purge()";
                 $scope.message = "Purged queue " + name;
-                jolokia.execute(mbean, operation, onSuccess(operationSuccess));
+               ARTEMISService.artemisConsole.purgeQueue(jolokia, name, onSuccess(deleteSuccess));
             }
         };
         $scope.name = function () {
