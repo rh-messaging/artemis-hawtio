@@ -16,11 +16,28 @@
   Architecture
 */
 function ArtemisConsole() {
+
+    var jmsServerbean = "org.apache.activemq.artemis:module=JMS,type=Server";
+
     this.getServerAttributes = function (jolokia) {
        var req1 = { type: "read", mbean: "org.apache.activemq.artemis:module=Core,type=Server"};
-       var response = jolokia.request(req1, {method: "post"});
-        alert('I am ' +  response.value);
-       return response;
+        return jolokia.request(req1, {method: "post"});
+    };
+
+    this.createQueue = function (jolokia, name, method) {
+        jolokia.execute(jmsServerbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", name, null, null, true, method);
+    };
+
+    this.createQueue = function (jolokia, name, method) {
+        jolokia.execute(jmsServerbean, "deleteQueue(java.lang.String)", name,  method);
+    };
+
+    this.createTopic = function (jolokia, name, method) {
+        jolokia.execute(jmsServerbean, "createTopic(java.lang.String,java.lang.String)", name, null, method);
+    };
+
+    this.deleteTopic = function (jolokia, name, method) {
+        jolokia.execute(jmsServerbean, "deleteTopic(java.lang.String)", name, method);
     };
 }
 
