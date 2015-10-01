@@ -28,7 +28,7 @@ function ArtemisConsole() {
         jolokia.execute(jmsServerbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", name, null, null, true, method);
     };
 
-    this.createQueue = function (jolokia, name, method) {
+    this.deleteQueue = function (jolokia, name, method) {
         jolokia.execute(jmsServerbean, "deleteQueue(java.lang.String)", name,  method);
     };
 

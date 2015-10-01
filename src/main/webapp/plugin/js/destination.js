@@ -11,7 +11,7 @@ var ARTEMIS = (function(ARTEMIS) {
      * Controller for the Create interface
      */
     ARTEMIS.DestinationController = function ($scope, workspace, ARTEMISService, jolokia, localStorage) {
-        var amqJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
+        var artemisJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
         $scope.workspace = workspace;
         $scope.message = "";
         $scope.queueType = 'true';

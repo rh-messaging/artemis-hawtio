@@ -10,8 +10,8 @@ var ARTEMIS;
         };
     }]);
     ARTEMIS.module.controller("ARTEMIS.TreeController", ["$scope", "$location", "workspace", "localStorage", function ($scope, $location, workspace, localStorage) {
-        var amqJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
-        ARTEMIS.log.info("init tree " + amqJmxDomain);
+        var artemisJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
+        ARTEMIS.log.info("init tree " + artemisJmxDomain);
         $scope.$on("$routeChangeSuccess", function (event, current, previous) {
             // lets do this asynchronously to avoid Error: $digest already in progress
             setTimeout(updateSelectionFromURL, 50);
@@ -27,7 +27,7 @@ var ARTEMIS;
             var children = [];
             var tree = workspace.tree;
             if (tree) {
-                var domainName = amqJmxDomain;
+                var domainName = artemisJmxDomain;
                 var folder = tree.get(domainName);
                 if (folder) {
                     children = folder.children;

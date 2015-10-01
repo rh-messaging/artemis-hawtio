@@ -1,0 +1,13 @@
+<form class="form-horizontal" ng-controller="ARTEMIS.DestinationController">
+    <div class="control-group">
+        <label class="pull-left" style="margin-top:5px;"> Queue name:</label>
+        <input class="span10 pull-left"  type="text" size="60" style="margin-left:15px;" maxlength="300" name="destinationName" ng-model="destinationName" placeholder="Queue name"/>
+    </div>
+    <div class="alert alert-warning">
+        The JMS API does not define a standard address syntax however Artemis will prepend each queue with jms.queue. internally. To create queues with no prefix you can use the core API.
+     </div>
+
+    <div class="control-group">
+        <button type="submit" class="btn btn-info" ng-click="createDestination(destinationName, true)" ng-disabled="!destinationName">Create queue</button>
+    </div>
+</form>
