@@ -52,15 +52,13 @@ var ARTEMIS = (function(ARTEMIS) {
                 ARTEMISService.artemisConsole.createTopic(jolokia, name, onSuccess(operationSuccess));
             }
         };
-        $scope.deleteDestination = function () {
+        $scope.deleteDestination = function (isQueue) {
             var selection = workspace.selection;
             var entries = selection.entries;
             if (selection && jolokia && entries) {
                 var domain = selection.domain;
                 var name = entries["Destination"] || entries["destinationName"] || selection.title;
                 name = name.unescapeHTML();
-                var isQueue = "Topic" !== (entries["Type"] || entries["destinationType"]);
-               ARTEMIS.log.info("name3=" + isQueue);
                 var operation;
                 if (isQueue) {
                     $scope.message = "Deleted queue " + name;

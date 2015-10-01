@@ -82,6 +82,9 @@ var ARTEMIS = (function(ARTEMIS) {
          })
          .when('/artemis/createQueue', {
             templateUrl: ARTEMIS.templatePath + 'createQueue.html'
+         })
+         .when('/artemis/deleteTopic', {
+            templateUrl: ARTEMIS.templatePath + 'deleteTopic.html'
          });
    });
 
@@ -128,6 +131,12 @@ var ARTEMIS = (function(ARTEMIS) {
          isValid: function(workspace) { return isQueue(workspace, artemisJmxDomain) },
          href: function() { return  "#/artemis/deleteQueue"}
       });
+      workspace.subLevelTabs.push({
+          content: '<i class="icon-remove"></i> Delete Topic',
+          title: "Delete this topic",
+          isValid: function (workspace) { return isTopic(workspace, artemisJmxDomain) },
+          href: function () { return "#/artemis/deleteTopic"; }
+      });
    });
    function isBroker(workspace, domain) {
       if (workspace.selectionHasDomainAndType(domain, 'Server')) {
@@ -143,6 +152,10 @@ var ARTEMIS = (function(ARTEMIS) {
 
    function isQueue(workspace, domain) {
       return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Queue' }, 4) || workspace.selectionHasDomainAndType(domain, 'Queue');
+   }
+   function isTopic(workspace, domain) {
+       //return workspace.selectionHasDomainAndType(jmxDomain, 'Topic');
+       return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Topic' }, 4) || workspace.selectionHasDomainAndType(domain, 'Topic');
    }
 
    return ARTEMIS;
