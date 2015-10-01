@@ -29,7 +29,7 @@ function ArtemisConsole() {
     };
 
     this.deleteQueue = function (jolokia, name, method) {
-        jolokia.execute(jmsServerbean, "deleteQueue(java.lang.String)", name,  method);
+        jolokia.execute(jmsServerbean, "destroyQueue(java.lang.String)", name,  method);
     };
 
     this.createTopic = function (jolokia, name, method) {
@@ -37,7 +37,7 @@ function ArtemisConsole() {
     };
 
     this.deleteTopic = function (jolokia, name, method) {
-        jolokia.execute(jmsServerbean, "deleteTopic(java.lang.String)", name, method);
+        jolokia.execute(jmsServerbean, "destroyTopic(java.lang.String)", name, method);
     };
 }
 

@@ -60,6 +60,7 @@ var ARTEMIS = (function(ARTEMIS) {
                 var name = entries["Destination"] || entries["destinationName"] || selection.title;
                 name = name.unescapeHTML();
                 var isQueue = "Topic" !== (entries["Type"] || entries["destinationType"]);
+               ARTEMIS.log.info("name3=" + isQueue);
                 var operation;
                 if (isQueue) {
                     $scope.message = "Deleted queue " + name;

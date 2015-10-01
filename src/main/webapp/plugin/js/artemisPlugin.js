@@ -117,34 +117,33 @@ var ARTEMIS = (function(ARTEMIS) {
       });
 
       workspace.subLevelTabs.push({
-        content: '<i class="icon-plus"></i> Create',
-        title: "Create a new queue",
-        isValid: function(workspace) { return isQueuesFolder(workspace, artemisJmxDomain) },
-        href: function() { return "#/artemis/createQueue" }
+         content: '<i class="icon-plus"></i> Create',
+         title: "Create a new queue",
+         isValid: function(workspace) { return isQueuesFolder(workspace, artemisJmxDomain) },
+         href: function() { return "#/artemis/createQueue" }
       });
-/*
       workspace.subLevelTabs.push({
          content: '<i class="icon-remove"></i> Delete',
          title: "Delete or purge this queue",
-         isValid: function(workspace) { return true },
+         isValid: function(workspace) { return isQueue(workspace, artemisJmxDomain) },
          href: function() { return  "#/artemis/deleteQueue"}
-      });*/
+      });
    });
    function isBroker(workspace, domain) {
-        if (workspace.selectionHasDomainAndType(domain, 'Server')) {
-            var self = Core.pathGet(workspace, ["selection"]);
-            var parent = Core.pathGet(workspace, ["selection", "parent"]);
-            return !(parent && (parent.ancestorHasType('JMS') || self.ancestorHasType('JMS')));
-        }
-        return false;
-    }
+      if (workspace.selectionHasDomainAndType(domain, 'Server')) {
+         var self = Core.pathGet(workspace, ["selection"]);
+         var parent = Core.pathGet(workspace, ["selection", "parent"]);
+         return !(parent && (parent.ancestorHasType('JMS') || self.ancestorHasType('JMS')));
+      }
+      return false;
+   }
    function isQueuesFolder(workspace, domain) {
-        return workspace.selectionHasDomainAndLastFolderName(domain, 'Queue');
-    }
+      return workspace.selectionHasDomainAndLastFolderName(domain, 'Queue');
+   }
 
    function isQueue(workspace, domain) {
-        return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Queue' }, 4) || workspace.selectionHasDomainAndType(domain, 'Queue');
-    }
+      return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Queue' }, 4) || workspace.selectionHasDomainAndType(domain, 'Queue');
+   }
 
    return ARTEMIS;
 }(ARTEMIS || {}));
