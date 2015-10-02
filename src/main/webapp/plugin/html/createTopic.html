@@ -1,0 +1,13 @@
+<form class="form-horizontal" ng-controller="ARTEMIS.DestinationController">
+    <div class="control-group">
+        <label class="pull-left" style="margin-top:5px;"> Topic name:</label>
+        <input class="span10 pull-left"  type="text" size="60" style="margin-left:15px;" maxlength="300" name="destinationName" ng-model="destinationName" placeholder="Topic name"/>
+    </div>
+    <div class="alert alert-warning">
+        The JMS API does not define a standard address syntax however Artemis will prepend each topic with jms.topic. internally.
+    </div>
+
+    <div class="control-group">
+        <button type="submit" class="btn btn-info" ng-click="createDestination(destinationName, false)" ng-disabled="!destinationName">Create topic</button>
+    </div>
+</form>

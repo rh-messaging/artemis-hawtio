@@ -83,6 +83,9 @@ var ARTEMIS = (function(ARTEMIS) {
          .when('/artemis/createQueue', {
             templateUrl: ARTEMIS.templatePath + 'createQueue.html'
          })
+         .when('/artemis/createTopic', {
+            templateUrl: ARTEMIS.templatePath + 'createTopic.html'
+         })
          .when('/artemis/deleteTopic', {
             templateUrl: ARTEMIS.templatePath + 'deleteTopic.html'
          });
@@ -132,7 +135,13 @@ var ARTEMIS = (function(ARTEMIS) {
          href: function() { return  "#/artemis/deleteQueue"}
       });
       workspace.subLevelTabs.push({
-          content: '<i class="icon-remove"></i> Delete Topic',
+          content: '<i class="icon-plus"></i> Create',
+          title: "Create a new topic",
+          isValid: function (workspace) { return isTopicsFolder(workspace, artemisJmxDomain) },
+          href: function () { return "#/artemis/createTopic"; }
+      });
+      workspace.subLevelTabs.push({
+          content: '<i class="icon-remove"></i> Delete',
           title: "Delete this topic",
           isValid: function (workspace) { return isTopic(workspace, artemisJmxDomain) },
           href: function () { return "#/artemis/deleteTopic"; }
@@ -153,6 +162,12 @@ var ARTEMIS = (function(ARTEMIS) {
    function isQueue(workspace, domain) {
       return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Queue' }, 4) || workspace.selectionHasDomainAndType(domain, 'Queue');
    }
+
+   function isTopicsFolder(workspace, domain) {
+         return workspace.selectionHasDomainAndLastFolderName(domain, 'Topic');
+      }
+
+
    function isTopic(workspace, domain) {
        //return workspace.selectionHasDomainAndType(jmxDomain, 'Topic');
        return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Topic' }, 4) || workspace.selectionHasDomainAndType(domain, 'Topic');
