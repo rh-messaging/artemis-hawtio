@@ -89,6 +89,12 @@ var ARTEMIS = (function(ARTEMIS) {
          .when('/artemis/deleteTopic', {
             templateUrl: ARTEMIS.templatePath + 'deleteTopic.html'
          });
+         /*.when('/artemis/browseQueue', {
+            templateUrl: ARTEMIS.templatePath + 'browseQueue.html'
+         });*/
+         /*.when('/artemis/sendMessage', {
+            templateUrl: 'app/camel/html/sendMessage.html'
+         });*/
    });
 
    // one-time initialization happens in the run function
@@ -98,6 +104,9 @@ var ARTEMIS = (function(ARTEMIS) {
       ARTEMIS.log.info("plugin running " + jolokia);
 
       var artemisJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
+
+      workspace.addTreePostProcessor(postProcessTree);
+
 
       ARTEMISService.initArtemis();
 
@@ -110,67 +119,140 @@ var ARTEMIS = (function(ARTEMIS) {
          id: "artemis",
          content: "Artemis",
          title: "example ARTEMIS client",
-         isValid: function(workspace) { return workspace.treeContainsDomainAndProperties(artemisJmxDomain);},
-         href: function() { return "#/jmx/attributes?tab=artemis"; },
-         isActive: function() { return workspace.isLinkActive("artemis"); }
+         isValid: function (workspace) {
+            return workspace.treeContainsDomainAndProperties(artemisJmxDomain);
+         },
+         href: function () {
+            return "#/jmx/attributes?tab=artemis";
+         },
+         isActive: function () {
+            return workspace.isLinkActive("artemis");
+         }
       });
 
       workspace.subLevelTabs.push({
          content: '<i class="icon-plus"></i> Create',
          title: "Create a new destination",
-         isValid: function(workspace) { return isBroker(workspace, artemisJmxDomain); },
-         href: function() { return "#/artemis/createDestination"; }
+         isValid: function (workspace) {
+            return isBroker(workspace, artemisJmxDomain);
+         },
+         href: function () {
+            return "#/artemis/createDestination";
+         }
       });
 
       workspace.subLevelTabs.push({
          content: '<i class="icon-plus"></i> Create',
          title: "Create a new queue",
-         isValid: function(workspace) { return isQueuesFolder(workspace, artemisJmxDomain) },
-         href: function() { return "#/artemis/createQueue" }
+         isValid: function (workspace) {
+            return isQueuesFolder(workspace, artemisJmxDomain)
+         },
+         href: function () {
+            return "#/artemis/createQueue"
+         }
       });
+
       workspace.subLevelTabs.push({
          content: '<i class="icon-remove"></i> Delete',
          title: "Delete or purge this queue",
-         isValid: function(workspace) { return isQueue(workspace, artemisJmxDomain) },
-         href: function() { return  "#/artemis/deleteQueue"}
+         isValid: function (workspace) {
+            return isQueue(workspace, artemisJmxDomain)
+         },
+         href: function () {
+            return "#/artemis/deleteQueue"
+         }
       });
+
       workspace.subLevelTabs.push({
-          content: '<i class="icon-plus"></i> Create',
-          title: "Create a new topic",
-          isValid: function (workspace) { return isTopicsFolder(workspace, artemisJmxDomain) },
-          href: function () { return "#/artemis/createTopic"; }
+         content: '<i class="icon-plus"></i> Create',
+         title: "Create a new topic",
+         isValid: function (workspace) {
+            return isTopicsFolder(workspace, artemisJmxDomain)
+         },
+         href: function () {
+            return "#/artemis/createTopic";
+         }
       });
+
       workspace.subLevelTabs.push({
-          content: '<i class="icon-remove"></i> Delete',
-          title: "Delete this topic",
-          isValid: function (workspace) { return isTopic(workspace, artemisJmxDomain) },
-          href: function () { return "#/artemis/deleteTopic"; }
+         content: '<i class="icon-remove"></i> Delete',
+         title: "Delete this topic",
+         isValid: function (workspace) {
+            return isTopic(workspace, artemisJmxDomain)
+         },
+         href: function () {
+            return "#/artemis/deleteTopic";
+         }
       });
-   });
-   function isBroker(workspace, domain) {
-      if (workspace.selectionHasDomainAndType(domain, 'Server')) {
-         var self = Core.pathGet(workspace, ["selection"]);
-         var parent = Core.pathGet(workspace, ["selection", "parent"]);
-         return !(parent && (parent.ancestorHasType('JMS') || self.ancestorHasType('JMS')));
+
+
+      function postProcessTree(tree) {
+         var activemq = tree.get(artemisJmxDomain);
+         // let JMS as first children within brokers
+
+         ARTEMIS.log.info("activemq=" + activemq);
+         if (activemq) {
+            angular.forEach(activemq.children, function (broker) {
+               ARTEMIS.log.info("broker=" + broker);
+               angular.forEach(broker.children, function (child) {
+
+                  ARTEMIS.log.info("child=" + child);
+                  // lets move JMS module to the front.
+                  var grandChildren = child.children;
+                  if (grandChildren) {
+                     var names = ["JMS"];
+                     angular.forEach(names, function (name) {
+                        var idx = grandChildren.findIndex(function (n) {
+                           return n.title === name;
+                        });
+                        if (idx > 0) {
+                           var old = grandChildren[idx];
+                           grandChildren.splice(idx, 1);
+                           grandChildren.splice(0, 0, old);
+                        }
+                     });
+                  }
+               });
+            });
+         }
       }
-      return false;
+});
+
+   /*    workspace.subLevelTabs.push({
+    content: '<i class="icon-envelope"></i> Browse',
+    title: "Browse the messages on the queue",
+    isValid: function (workspace) { return isQueue(workspace, artemisJmxDomain); },
+    href: function () { return "#/artemis/browseQueue"; }
+    });
+
+    workspace.subLevelTabs.push({
+    content: '<i class="icon-pencil"></i> Send',
+    title: "Send a message to this destination",
+    isValid: function (workspace) { return (isQueue(workspace, artemisJmxDomain) || isTopic(workspace, artemisJmxDomain)); },
+    href: function () { return "#/artemis/sendMessage"; }
+    });*/
+
+
+   function isBroker(workspace, domain) {
+      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Server'}, 4) || workspace.selectionHasDomainAndType(domain, 'Server');
    }
+
    function isQueuesFolder(workspace, domain) {
       return workspace.selectionHasDomainAndLastFolderName(domain, 'Queue');
    }
 
    function isQueue(workspace, domain) {
-      return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Queue' }, 4) || workspace.selectionHasDomainAndType(domain, 'Queue');
+      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Queue'}, 5) || workspace.selectionHasDomainAndType(domain, 'Queue');
    }
 
    function isTopicsFolder(workspace, domain) {
-         return workspace.selectionHasDomainAndLastFolderName(domain, 'Topic');
-      }
+      return workspace.selectionHasDomainAndLastFolderName(domain, 'Topic');
+   }
 
 
    function isTopic(workspace, domain) {
-       //return workspace.selectionHasDomainAndType(jmxDomain, 'Topic');
-       return workspace.hasDomainAndProperties(domain, { 'destinationType': 'Topic' }, 4) || workspace.selectionHasDomainAndType(domain, 'Topic');
+      //return workspace.selectionHasDomainAndType(jmxDomain, 'Topic');
+      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Topic'}, 5) || workspace.selectionHasDomainAndType(domain, 'Topic');
    }
 
    return ARTEMIS;

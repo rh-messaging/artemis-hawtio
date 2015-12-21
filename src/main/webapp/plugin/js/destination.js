@@ -43,42 +43,53 @@ var ARTEMIS = (function(ARTEMIS) {
             $scope.workspace.loadTree();
         }
         $scope.createDestination = function (name, isQueue) {
-            if (isQueue) {
-                $scope.message = "Created queue " + name;
-                ARTEMISService.artemisConsole.createQueue(jolokia, name, onSuccess(operationSuccess));
-            }
-            else {
-                $scope.message = "Created topic " + name;
-                ARTEMISService.artemisConsole.createTopic(jolokia, name, onSuccess(operationSuccess));
+            var mbean = getBrokerMBean(jolokia);
+            if (mbean) {
+                if (isQueue) {
+                    $scope.message = "Created queue " + name;
+                    ARTEMISService.artemisConsole.createQueue(mbean, jolokia, name, onSuccess(operationSuccess));
+                }
+                else {
+                    $scope.message = "Created topic " + name;
+                    ARTEMISService.artemisConsole.createTopic(mbean, jolokia, name, onSuccess(operationSuccess));
+                }
             }
         };
         $scope.deleteDestination = function (isQueue) {
             var selection = workspace.selection;
             var entries = selection.entries;
-            if (selection && jolokia && entries) {
-                var domain = selection.domain;
-                var name = entries["Destination"] || entries["destinationName"] || selection.title;
-                name = name.unescapeHTML();
-                var operation;
-                if (isQueue) {
-                    $scope.message = "Deleted queue " + name;
-                    ARTEMISService.artemisConsole.deleteQueue(jolokia, name, onSuccess(deleteSuccess));
-                }
-                else {
-                    $scope.message = "Deleted topic " + name;
-                    ARTEMISService.artemisConsole.deleteTopic(jolokia, name, onSuccess(deleteSuccess));
+            var mbean = getBrokerMBean(jolokia);
+            ARTEMIS.log.info(mbean);
+            if (mbean) {
+                if (selection && jolokia && entries) {
+                    var domain = selection.domain;
+                    var name = entries["Destination"] || entries["destinationName"] || selection.title;
+                    name = name.unescapeHTML();
+                    ARTEMIS.log.info(name);
+                    var operation;
+                    if (isQueue) {
+                        $scope.message = "Deleted queue " + name;
+                        ARTEMISService.artemisConsole.deleteQueue(mbean, jolokia, name, onSuccess(deleteSuccess));
+                    }
+                    else {
+                        $scope.message = "Deleted topic " + name;
+                        ARTEMISService.artemisConsole.deleteTopic(mbean, jolokia, name, onSuccess(deleteSuccess));
+                    }
                 }
             }
         };
         $scope.purgeDestination = function () {
             var selection = workspace.selection;
             var entries = selection.entries;
-            if (selection && jolokia && entries) {
-                var name = entries["Destination"] || entries["destinationName"] || selection.title;
-                name = name.unescapeHTML();
-                var operation = "purge()";
-                $scope.message = "Purged queue " + name;
-               ARTEMISService.artemisConsole.purgeQueue(jolokia, name, onSuccess(deleteSuccess));
+            var mbean = getBrokerMBean(jolokia);
+            if (mbean) {
+                if (selection && jolokia && entries) {
+                    var name = entries["Destination"] || entries["destinationName"] || selection.title;
+                    name = name.unescapeHTML();
+                    var operation = "purge()";
+                    $scope.message = "Purged queue " + name;
+                    ARTEMISService.artemisConsole.purgeQueue(mbean, jolokia, name, onSuccess(deleteSuccess));
+                }
             }
         };
         $scope.name = function () {
@@ -88,6 +99,25 @@ var ARTEMIS = (function(ARTEMIS) {
             }
             return null;
         };
+
+        function getBrokerMBean(jolokia) {
+            var mbean = null;
+            var selection = workspace.selection;
+            var folderNames = selection.folderNames;
+            var parent = selection ? selection.parent : null;
+            if (selection && parent && jolokia && folderNames && folderNames.length > 1) {
+                mbean = parent.objectName;
+                // we might be a destination, so lets try one more parent
+                if (!mbean && parent) {
+                    ARTEMIS.log.info("returning selection parent.parent.objectName");
+                    mbean = parent.parent.objectName;
+                }
+                if (!mbean) {
+                    mbean = "" + folderNames[0] + ":type=Broker" + ",brokerName=" + folderNames[2] + ",module=JMS,serviceType=Server";
+                }
+            }
+            return mbean;
+        }
     };
 
     return ARTEMIS;

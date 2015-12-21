@@ -17,32 +17,34 @@
  */
 function ArtemisConsole() {
 
-   var jmsServerbean = "org.apache.activemq.artemis:module=JMS,type=Server";
-
    this.getServerAttributes = function (jolokia) {
       var req1 = { type: "read", mbean: "org.apache.activemq.artemis:module=Core,type=Server"};
       return jolokia.request(req1, {method: "post"});
    };
 
-   this.createQueue = function (jolokia, name, method) {
-      jolokia.execute(jmsServerbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", name, null, null, true, method);
+   this.createQueue = function (mbean, jolokia, name, method) {
+      jolokia.execute(mbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", name, null, null, true, method);
    };
 
-   this.deleteQueue = function (jolokia, name, method) {
-      jolokia.execute(jmsServerbean, "destroyQueue(java.lang.String)", name,  method);
+   this.deleteQueue = function (mbean, jolokia, name, method) {
+      jolokia.execute(mbean, "destroyQueue(java.lang.String)", name,  method);
    };
 
-   this.purgeQueue = function (jolokia, name, method) {
+   this.purgeQueue = function (mbean, jolokia, name, method) {
       //todo
    };
 
-   this.createTopic = function (jolokia, name, method) {
-      jolokia.execute(jmsServerbean, "createTopic(java.lang.String,java.lang.String)", name, null, method);
+   this.createTopic = function (mbean, jolokia, name, method) {
+      jolokia.execute(mbean, "createTopic(java.lang.String,java.lang.String)", name, null, method);
    };
 
-   this.deleteTopic = function (jolokia, name, method) {
-      jolokia.execute(jmsServerbean, "destroyTopic(java.lang.String)", name, method);
+   this.deleteTopic = function (mbean, jolokia, name, method) {
+      jolokia.execute(mbean, "destroyTopic(java.lang.String)", name, method);
    };
+
+   this.browse = function (jolokia, name, method) {
+         jolokia.execute(jmsServerbean, "browse()", name, method);
+      };
 }
 
 function getServerAttributes() {
