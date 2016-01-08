@@ -45,32 +45,6 @@ var ARTEMIS;
                         children = answer;
                     }
                 }
-                // filter out advisory topics
-                children.forEach(function (broker) {
-                    var grandChildren = broker.children;
-                    if (grandChildren) {
-                        Tree.sanitize(grandChildren);
-                        var idx = grandChildren.findIndex(function (n) { return n.title === "Topic"; });
-                        if (idx > 0) {
-                            var old = grandChildren[idx];
-                            // we need to store all topics the first time on the workspace
-                            // so we have access to them later if the user changes the filter in the preferences
-                            var key = "ARTEMIS-allTopics-" + broker.title;
-                            var allTopics = old.children.clone();
-                            workspace.mapData[key] = allTopics;
-                            var filter = Core.parseBooleanValue(localStorage["artemisFilterAdvisoryTopics"]);
-                            if (filter) {
-                                if (old && old.children) {
-                                    var filteredTopics = old.children.filter(function (c) { return !c.title.startsWith("ARTEMIS.Advisory"); });
-                                    old.children = filteredTopics;
-                                }
-                            }
-                            else if (allTopics) {
-                                old.children = allTopics;
-                            }
-                        }
-                    }
-                });
                 var treeElement = $("#artemistree");
                 Jmx.enableTree($scope, $location, workspace, treeElement, children, true);
                 // lets do this asynchronously to avoid Error: $digest already in progress
@@ -80,7 +54,9 @@ var ARTEMIS;
         function updateSelectionFromURL() {
             Jmx.updateTreeSelectionFromURLAndAutoSelect($location, $("#artemistree"), function (first) {
                 // use function to auto select the queue folder on the 1st broker
-                var queues = first.getChildren()[0];
+                var jms = first.getChildren()[0];
+                ARTEMIS.log.info("%%%%%%" + jms);
+                var queues = jms.getChildren()[0];
                 if (queues && queues.data.title === 'Queue') {
                     first = queues;
                     first.expand(true);

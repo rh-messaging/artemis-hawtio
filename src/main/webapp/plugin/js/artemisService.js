@@ -15,7 +15,7 @@ var ARTEMIS = (function(ARTEMIS) {
       getVersion: function(jolokia) {
         ARTEMIS.log.info("Connecting to ARTEMIS service: " + self.artemisConsole.getServerAttributes(jolokia));
       } ,
-      initArtemis: function() {
+      initArtemis: function(broker) {
         ARTEMIS.log.info("*************creating Artemis Console************");
         self.artemisConsole = new ArtemisConsole();
       }
