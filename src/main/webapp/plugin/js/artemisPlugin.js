@@ -88,10 +88,10 @@ var ARTEMIS = (function(ARTEMIS) {
          })
          .when('/artemis/deleteTopic', {
             templateUrl: ARTEMIS.templatePath + 'deleteTopic.html'
-         });
-         /*.when('/artemis/browseQueue', {
+         })
+         .when('/artemis/browseQueue', {
             templateUrl: ARTEMIS.templatePath + 'browseQueue.html'
-         });*/
+         });
          /*.when('/artemis/sendMessage', {
             templateUrl: 'app/camel/html/sendMessage.html'
          });*/
@@ -99,7 +99,7 @@ var ARTEMIS = (function(ARTEMIS) {
 
    // one-time initialization happens in the run function
    // of our module
-   ARTEMIS.module.run(function(workspace, viewRegistry, localStorage, jolokia, ARTEMISService, $rootScope) {
+   ARTEMIS.module.run(function(workspace, viewRegistry, preferencesRegistry, localStorage, jolokia, ARTEMISService, $rootScope) {
       // let folks know we're actually running
       ARTEMIS.log.info("plugin running " + jolokia);
 
@@ -113,6 +113,10 @@ var ARTEMIS = (function(ARTEMIS) {
       // tell hawtio that we have our own custom layout for
       // our view
       viewRegistry["artemis"] = ARTEMIS.templatePath + "artemisLayout.html";
+
+      preferencesRegistry.addTab("Artemis", ARTEMIS.templatePath + "preferences.html", function () {
+         return workspace.treeContainsDomainAndProperties(artemisJmxDomain);
+      });
 
       // Add a top level tab to hawtio's navigation bar
       workspace.topLevelTabs.push({
@@ -185,6 +189,12 @@ var ARTEMIS = (function(ARTEMIS) {
          }
       });
 
+      workspace.subLevelTabs.push({
+          content: '<i class="icon-envelope"></i> Browse',
+          title: "Browse the messages on the queue",
+          isValid: function (workspace) { return isQueue(workspace, artemisJmxDomain); },
+          href: function () { return "#/artemis/browseQueue"; }
+      });
 
       function postProcessTree(tree) {
          var activemq = tree.get(artemisJmxDomain);
@@ -218,12 +228,7 @@ var ARTEMIS = (function(ARTEMIS) {
       }
 });
 
-   /*    workspace.subLevelTabs.push({
-    content: '<i class="icon-envelope"></i> Browse',
-    title: "Browse the messages on the queue",
-    isValid: function (workspace) { return isQueue(workspace, artemisJmxDomain); },
-    href: function () { return "#/artemis/browseQueue"; }
-    });
+   /*
 
     workspace.subLevelTabs.push({
     content: '<i class="icon-pencil"></i> Send',

@@ -42,9 +42,21 @@ function ArtemisConsole() {
       jolokia.execute(mbean, "destroyTopic(java.lang.String)", name, method);
    };
 
-   this.browse = function (jolokia, name, method) {
-         jolokia.execute(jmsServerbean, "browse()", name, method);
-      };
+   this.browse = function (mbean, jolokia, method) {
+      jolokia.request({ type: 'exec', mbean: mbean, operation: 'browse()' }, method);
+   };
+
+   this.deleteMessage = function (mbean, jolokia, id,  method) {
+      jolokia.execute(mbean, "removeMessage(java.lang.String)", id, method);
+   };
+
+   this.moveMessage = function (mbean, jolokia, id, queueName,  method) {
+      jolokia.execute(mbean, "moveMessage(java.lang.String,java.lang.String)", id, queueName, method);
+   };
+
+   this.retryMessage = function (mbean, jolokia, id, method) {
+      jolokia.execute(mbean, "retryMessage(java.lang.String)", id,  method);
+   };
 }
 
 function getServerAttributes() {
