@@ -57,6 +57,10 @@ function ArtemisConsole() {
    this.retryMessage = function (mbean, jolokia, id, method) {
       jolokia.execute(mbean, "retryMessage(java.lang.String)", id,  method);
    };
+
+   this.sendMessage = function (mbean, jolokia, headers, body, user, pwd, method) {
+      jolokia.execute(mbean, "sendTextMessage(java.util.Map, java.lang.String, java.lang.String, java.lang.String)", headers, body, user, pwd,  method);
+   };
 }
 
 function getServerAttributes() {

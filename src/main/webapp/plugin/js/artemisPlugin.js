@@ -91,11 +91,15 @@ var ARTEMIS = (function(ARTEMIS) {
          })
          .when('/artemis/browseQueue', {
             templateUrl: ARTEMIS.templatePath + 'browseQueue.html'
+         })
+         .when('/artemis/sendMessage', {
+            templateUrl: ARTEMIS.templatePath + 'sendMessage.html'
          });
-         /*.when('/artemis/sendMessage', {
-            templateUrl: 'app/camel/html/sendMessage.html'
-         });*/
    });
+
+   ARTEMIS.module.factory('artemisMessage', function () {
+        return { 'message': null };
+    });
 
    // one-time initialization happens in the run function
    // of our module
@@ -196,6 +200,13 @@ var ARTEMIS = (function(ARTEMIS) {
           href: function () { return "#/artemis/browseQueue"; }
       });
 
+      workspace.subLevelTabs.push({
+      content: '<i class="icon-pencil"></i> Send',
+      title: "Send a message to this destination",
+      isValid: function (workspace) { return (isQueue(workspace, artemisJmxDomain) || isTopic(workspace, artemisJmxDomain)); },
+      href: function () { return "#/artemis/sendMessage"; }
+      });
+
       function postProcessTree(tree) {
          var activemq = tree.get(artemisJmxDomain);
          // let JMS as first children within brokers
@@ -227,15 +238,6 @@ var ARTEMIS = (function(ARTEMIS) {
          }
       }
 });
-
-   /*
-
-    workspace.subLevelTabs.push({
-    content: '<i class="icon-pencil"></i> Send',
-    title: "Send a message to this destination",
-    isValid: function (workspace) { return (isQueue(workspace, artemisJmxDomain) || isTopic(workspace, artemisJmxDomain)); },
-    href: function () { return "#/artemis/sendMessage"; }
-    });*/
 
 
    function isBroker(workspace, domain) {

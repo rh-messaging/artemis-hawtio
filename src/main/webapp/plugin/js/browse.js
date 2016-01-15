@@ -3,7 +3,8 @@
  */
 var ARTEMIS = (function(ARTEMIS) {
 
-    ARTEMIS.BrowseQueueController = function ($scope, workspace, ARTEMISService, jolokia, localStorage, $location, $timeout) {
+    ARTEMIS.BrowseQueueController = function ($scope, workspace, ARTEMISService, jolokia, localStorage, artemisMessage, $location, $timeout) {
+       ARTEMIS.log.info("qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
        $scope.searchText = '';
        $scope.allMessages = [];
        $scope.messages = [];
@@ -113,8 +114,8 @@ var ARTEMIS = (function(ARTEMIS) {
           if (mbean && selection) {
              var selectedItems = $scope.gridOptions.selectedItems;
              //always assume a single message
-             //ARTEMISMessage.message = selectedItems[0];
-             location.path('ARTEMIS/sendMessage');
+             artemisMessage.message = selectedItems[0];
+             $location.path('artemis/sendMessage');
           }
        };
        $scope.deleteMessages = function () {
