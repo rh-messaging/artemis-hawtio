@@ -17,8 +17,8 @@
  */
 function ArtemisConsole() {
 
-   this.getServerAttributes = function (jolokia) {
-      var req1 = { type: "read", mbean: "org.apache.activemq.artemis:module=Core,type=Server"};
+   this.getServerAttributes = function (jolokia, mBean) {
+      var req1 = { type: "read", mbean: mBean};
       return jolokia.request(req1, {method: "post"});
    };
 
@@ -60,6 +60,14 @@ function ArtemisConsole() {
 
    this.sendMessage = function (mbean, jolokia, headers, body, user, pwd, method) {
       jolokia.execute(mbean, "sendTextMessage(java.util.Map, java.lang.String, java.lang.String, java.lang.String)", headers, body, user, pwd,  method);
+   };
+
+   this.getConsumers = function (mbean, jolokia, method) {
+      jolokia.request({ type: 'exec', mbean: mbean, operation: 'listAllConsumersAsJSON()' }, method);
+   };
+
+   this.getRemoteBrokers = function (mbean, jolokia, method) {
+      jolokia.request({ type: 'exec', mbean: mbean, operation: 'listNetworkTopology()' }, method);
    };
 }
 

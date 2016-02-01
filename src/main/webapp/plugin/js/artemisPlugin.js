@@ -92,6 +92,9 @@ var ARTEMIS = (function(ARTEMIS) {
          .when('/artemis/browseQueue', {
             templateUrl: ARTEMIS.templatePath + 'browseQueue.html'
          })
+         .when('/artemis/diagram', {
+            templateUrl: ARTEMIS.templatePath + 'brokerDiagram.html'
+         })
          .when('/artemis/sendMessage', {
             templateUrl: ARTEMIS.templatePath + 'sendMessage.html'
          });
@@ -205,6 +208,13 @@ var ARTEMIS = (function(ARTEMIS) {
       title: "Send a message to this destination",
       isValid: function (workspace) { return (isQueue(workspace, artemisJmxDomain) || isTopic(workspace, artemisJmxDomain)); },
       href: function () { return "#/artemis/sendMessage"; }
+      });
+
+      workspace.subLevelTabs.push({
+          content: '<i class="icon-picture"></i> Diagram',
+          title: "View a diagram of the producers, destinations and consumers",
+          isValid: function (workspace) { return workspace.isTopTabActive("artemis") || workspace.selectionHasDomain(artemisJmxDomain); },
+          href: function () { return "#/artemis/diagram"; }
       });
 
       function postProcessTree(tree) {
