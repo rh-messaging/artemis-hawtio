@@ -3,7 +3,8 @@
  */
 var ARTEMIS = (function(ARTEMIS) {
 
-    ARTEMIS.BrowseQueueController = function ($scope, workspace, ARTEMISService, jolokia, localStorage, $location, $timeout) {
+    ARTEMIS.BrowseQueueController = function ($scope, workspace, ARTEMISService, jolokia, localStorage, artemisMessage, $location, $timeout) {
+       ARTEMIS.log.info("qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
        $scope.searchText = '';
        $scope.allMessages = [];
        $scope.messages = [];
@@ -102,6 +103,7 @@ var ARTEMIS = (function(ARTEMIS) {
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : moveSuccess;
                    jolokia.execute(mbean, operation, id, $scope.queueName, onSuccess(callback));
+                   ARTEMISService.artemisConsole.moveMessage(mbean, jolokia, id, $scope.queueName, onSuccess(callback));
                 }
              });
           }
@@ -112,8 +114,8 @@ var ARTEMIS = (function(ARTEMIS) {
           if (mbean && selection) {
              var selectedItems = $scope.gridOptions.selectedItems;
              //always assume a single message
-             //ARTEMISMessage.message = selectedItems[0];
-             location.path('ARTEMIS/sendMessage');
+             artemisMessage.message = selectedItems[0];
+             $location.path('artemis/sendMessage');
           }
        };
        $scope.deleteMessages = function () {
@@ -122,12 +124,11 @@ var ARTEMIS = (function(ARTEMIS) {
           if (mbean && selection) {
              var selectedItems = $scope.gridOptions.selectedItems;
              $scope.message = "Deleted " + Core.maybePlural(selectedItems.length, "message");
-             var operation = "removeMessage(java.lang.String)";
              angular.forEach(selectedItems, function (item, idx) {
                 var id = item.JMSMessageID;
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : operationSuccess;
-                   jolokia.execute(mbean, operation, id, onSuccess(callback));
+                   ARTEMISService.artemisConsole.deleteMessage(mbean, jolokia, id, onSuccess(callback));
                 }
              });
           }
@@ -144,6 +145,7 @@ var ARTEMIS = (function(ARTEMIS) {
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : operationSuccess;
                    jolokia.execute(mbean, operation, id, onSuccess(callback));
+                   ARTEMISService.artemisConsole.retryMessage(mbean, jolokia, id, onSuccess(callback));
                 }
              });
           }
@@ -164,8 +166,8 @@ var ARTEMIS = (function(ARTEMIS) {
           }
        };
        function populateTable(response) {
-          ARTEMIS.log.info("populating table")
           var data = response.value;
+
           if (!angular.isArray(data)) {
              $scope.allMessages = [];
              angular.forEach(data, function (value, idx) {
@@ -328,13 +330,23 @@ var ARTEMIS = (function(ARTEMIS) {
           }
           if (objName) {
              $scope.dlq = false;
-             //jolokia.getAttribute(objName, "DLQ", onSuccess(onDlq, {silent: true}));
+             var queueName = jolokia.getAttribute(objName, "Name");
 
-             ARTEMISService.artemisConsole.browse(jolokia, objName, onSuccess(populateTable));
+             var artemisDLQ = localStorage['artemisDLQ'] || "DLQ";
+             var artemisExpiryQueue = localStorage['artemisExpiryQueue'] || "ExpiryQueue";
+             ARTEMIS.log.info("loading table" + artemisExpiryQueue);
+             if (queueName == artemisDLQ || queueName == artemisExpiryQueue) {
+                onDlq(true);
+             }
+             else {
+                onDlq(false);
+             }
+             ARTEMISService.artemisConsole.browse(objName, jolokia, onSuccess(populateTable));
           }
        }
 
        function onDlq(response) {
+          ARTEMIS.log.info("onDLQ=" + response);
           $scope.dlq = response;
           Core.$apply($scope);
        }
