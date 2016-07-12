@@ -103,7 +103,6 @@ var ARTEMIS;
             workspace.setLocalStorage(LANGUAGE_FORMAT_PREFERENCE, newValue);
         });
         var sendWorked = function () {
-            $scope.message = "";
             Core.notification("success", "Message sent!");
         };
         $scope.autoFormat = function () {
