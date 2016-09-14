@@ -6,8 +6,10 @@
 
 Since Artemis ships with a Web Server add the HawtIO war and the plugin to the bootstrap.xml configuration file like:
 
+```xml
 <app url="hawtio" war="hawtio-web.war"/>
 <app url="artemis-plugin" war="artemis-plugin.war"/>
+```
 
 and place each war into the web directory.
 
@@ -15,7 +17,9 @@ you will also need to configure credentials for logging into HawtIO. When you cr
 prompted for a default user and role. To use this for the hawtIO login credentials update the `JAVA_ARGS` property in the
 `artemis.profile` configuration file and add the default role, so if you set the default role as `admin` then add the following.
 
-   -Dhawtio.realm=activemq -Dhawtio.role=admin -Dhawtio.rolePrincipalClasses=org.apache.activemq.artemis.spi.core.security.jaas.RolePrincipal
+```bash
+-Dhawtio.realm=activemq -Dhawtio.role=admin -Dhawtio.rolePrincipalClasses=org.apache.activemq.artemis.spi.core.security.jaas.RolePrincipal
+```
 
 Alternatively add a new user/role into the `artemis-users.properties` and `artemis-roles.properties` files respectively.
 
