@@ -84,9 +84,9 @@ var ARTEMIS;
             if (isJmsEndpoint()) {
                 addHeaderSchema(ARTEMIS.jmsHeaderSchema);
             }
-            if (isARTEMISEndpoint()) {
+            /*if (isARTEMISEndpoint()) {
                 addHeaderSchema(ARTEMIS.ARTEMISHeaderSchema);
-            }
+            }*/
             return answer;
         };
         $scope.$watch('workspace.selection', function () {
@@ -222,10 +222,10 @@ var ARTEMIS;
             // now lets start sending
             onSendFileCompleted(null);
         };
-        function isARTEMISEndpoint() {
+        /*function isCamelEndpoint() {
             // TODO check for the ARTEMIS or if its an activemq endpoint
             return true;
-        }
+        }*/
 
         function isJmsEndpoint() {
             // TODO check for the jms/activemq endpoint in ARTEMIS or if its an activemq endpoint
