@@ -10,7 +10,7 @@
   <groupId>org.jboss.rh-messaging</groupId>
   <artifactId>messaging-hawtio-plugins</artifactId>
   <name>Messaging Hawtio Plugins</name>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0.ER4</version>
 
   <packaging>pom</packaging>
 
