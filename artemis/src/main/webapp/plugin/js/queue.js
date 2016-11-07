@@ -4,31 +4,30 @@
 var ARTEMIS = (function(ARTEMIS) {
 
     /**
-     * @method DestinationController
+     * @method QueueController
      * @param $scope
      * @param ARTEMISService
      *
      * Controller for the Create interface
      */
-    ARTEMIS.DestinationController = function ($scope, workspace, ARTEMISService, jolokia, localStorage) {
+    ARTEMIS.QueueController = function ($scope, workspace, ARTEMISService, jolokia, localStorage) {
+        Core.initPreferenceScope($scope, localStorage, {
+            'durable': {
+                'value': false,
+                'converter': Core.parseBooleanValue
+            }
+        });
         var artemisJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
         $scope.workspace = workspace;
         $scope.message = "";
         $scope.queueType = 'true';
         $scope.deleteDialog = false;
         $scope.purgeDialog = false;
-        updateQueueType();
-        function updateQueueType() {
-            $scope.destinationTypeName = $scope.queueType ? "Queue" : "Topic";
-        }
-        $scope.$watch('queueType', function () {
-            updateQueueType();
-        });
         $scope.$watch('workspace.selection', function () {
             workspace.moveIfViewInvalid();
         });
         function operationSuccess() {
-            $scope.destinationName = "";
+            $scope.queueName = "";
             $scope.workspace.operationCounter += 1;
             Core.$apply($scope);
             Core.notification("success", $scope.message);
@@ -42,17 +41,20 @@ var ARTEMIS = (function(ARTEMIS) {
             Core.notification("success", $scope.message);
             $scope.workspace.loadTree();
         }
-        $scope.createDestination = function (name, isQueue) {
+        $scope.createQueue = function (name, durable, filter) {
             var mbean = getBrokerMBean(jolokia);
             if (mbean) {
-                if (isQueue) {
-                    $scope.message = "Created queue " + name;
-                    ARTEMISService.artemisConsole.createQueue(mbean, jolokia, name, onSuccess(operationSuccess));
+                var selection = workspace.selection;
+                var entries = selection.entries;
+                var address = entries["name"];
+                if (address.charAt(0) === '"' && address.charAt(address.length -1) === '"')
+                {
+                    address = address.substr(1,address.length -2);
                 }
-                else {
-                    $scope.message = "Created topic " + name;
-                    ARTEMISService.artemisConsole.createTopic(mbean, jolokia, name, onSuccess(operationSuccess));
-                }
+                $scope.message = "Created queue " + name + " durable=" + durable + " filter=" + filter + " on address " + address;
+                ARTEMIS.log.info($scope.message);
+                ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, name, durable, filter, onSuccess(operationSuccess));
+                ARTEMIS.log.info("executed");
             }
         };
         $scope.deleteDestination = function (isQueue) {
@@ -64,7 +66,7 @@ var ARTEMIS = (function(ARTEMIS) {
                 if (selection && jolokia && entries) {
                     var domain = selection.domain;
                     var name = entries["Destination"] || entries["destinationName"] || selection.title;
-                    name = name.unescapeHTML();
+                    name = name.replace(/['"]+/g, '');
                     ARTEMIS.log.info(name);
                     var operation;
                     if (isQueue) {
@@ -104,18 +106,8 @@ var ARTEMIS = (function(ARTEMIS) {
             var mbean = null;
             var selection = workspace.selection;
             var folderNames = selection.folderNames;
-            var parent = selection ? selection.parent : null;
-            if (selection && parent && jolokia && folderNames && folderNames.length > 1) {
-                mbean = parent.objectName;
-                // we might be a destination, so lets try one more parent
-                if (!mbean && parent) {
-                    ARTEMIS.log.info("returning selection parent.parent.objectName");
-                    mbean = parent.parent.objectName;
-                }
-                if (!mbean) {
-                    mbean = "" + folderNames[0] + ":type=Broker" + ",brokerName=" + folderNames[2] + ",module=JMS,serviceType=Server";
-                }
-            }
+            mbean = "" + folderNames[0] + ":type=Broker" + ",brokerName=" + folderNames[2] + ",serviceType=Broker";
+            ARTEMIS.log.info("broker=" + mbean);
             return mbean;
         }
     };

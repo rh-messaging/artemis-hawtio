@@ -22,8 +22,12 @@ function ArtemisConsole() {
       return jolokia.request(req1, {method: "post"});
    };
 
-   this.createQueue = function (mbean, jolokia, name, method) {
-      jolokia.execute(mbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", name, null, null, true, method);
+   this.createAddress = function (mbean, jolokia, name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers, method) {
+      jolokia.execute(mbean, "createAddress(java.lang.String,int,boolean,int)", name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers, method);
+   };
+
+   this.createQueue = function (mbean, jolokia, address, name, durable, filter, method) {
+      jolokia.execute(mbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", address, name, filter, durable, method);
    };
 
    this.deleteQueue = function (mbean, jolokia, name, method) {
@@ -34,20 +38,13 @@ function ArtemisConsole() {
       //todo
    };
 
-   this.createTopic = function (mbean, jolokia, name, method) {
-      jolokia.execute(mbean, "createTopic(java.lang.String,java.lang.String)", name, null, method);
-   };
-
-   this.deleteTopic = function (mbean, jolokia, name, method) {
-      jolokia.execute(mbean, "destroyTopic(java.lang.String)", name, method);
-   };
-
    this.browse = function (mbean, jolokia, method) {
       jolokia.request({ type: 'exec', mbean: mbean, operation: 'browse()' }, method);
    };
 
    this.deleteMessage = function (mbean, jolokia, id,  method) {
-      jolokia.execute(mbean, "removeMessage(java.lang.String)", id, method);
+      ARTEMIS.log.info("executing on " + mbean);
+      jolokia.execute(mbean, "removeMessage(long)", id, method);
    };
 
    this.moveMessage = function (mbean, jolokia, id, queueName,  method) {
@@ -58,8 +55,8 @@ function ArtemisConsole() {
       jolokia.execute(mbean, "retryMessage(java.lang.String)", id,  method);
    };
 
-   this.sendMessage = function (mbean, jolokia, headers, body, user, pwd, method) {
-      jolokia.execute(mbean, "sendTextMessage(java.util.Map, java.lang.String, java.lang.String, java.lang.String)", headers, body, user, pwd,  method);
+   this.sendMessage = function (mbean, jolokia, headers, type, body, durable, user, pwd, method) {
+      jolokia.execute(mbean, "sendMessage(java.util.Map, int, java.lang.String, boolean, java.lang.String, java.lang.String)", headers, type, body, durable, user, pwd,  method);
    };
 
    this.getConsumers = function (mbean, jolokia, method) {

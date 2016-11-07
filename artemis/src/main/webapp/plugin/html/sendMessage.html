@@ -14,10 +14,15 @@
         </span>
 
         <form class="form-inline pull-right">
+          <div class="row-fluid">
+            <div class="controls">
+              <label class="control-label" for="durable" title="Is this message durable">Durable: </label>
+              <input id="durable" type="checkbox" ng-model="durable" value="true">
+            </div>
           <button class="btn" ng-click="addHeader()" title="Add a new message header"><i
               class="icon-plus"></i> Header
           </button>
-          <button type="submit" class="btn btn-primary" ng-click="sendMessage()">Send message</button>
+          <button type="submit" class="btn btn-primary" ng-click="sendMessage(durable)">Send message</button>
         </form>
       </div>
 

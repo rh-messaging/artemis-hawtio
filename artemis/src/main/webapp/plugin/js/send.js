@@ -5,6 +5,12 @@ var ARTEMIS;
 (function (ARTEMIS) {
     var DELIVERY_PERSISTENT = "2";
     ARTEMIS.SendMessageController = function($route, $scope, $element, $timeout, workspace, ARTEMISService,  jolokia, localStorage, $location, artemisMessage) {
+        Core.initPreferenceScope($scope, localStorage, {
+            'durable': {
+                'value': true,
+                'converter': Core.parseBooleanValue
+            }
+        });
         var log = Logger.get("ARTEMIS");
         $scope.noCredentials = false;
         $scope.showChoose = false;
@@ -89,13 +95,6 @@ var ARTEMIS;
             }*/
             return answer;
         };
-        $scope.$watch('workspace.selection', function () {
-            // if the current JMX selection does not support sending messages then lets redirect the page
-            workspace.moveIfViewInvalid();
-            if (Fabric.fabricCreated(workspace)) {
-                loadProfileConfigurationFiles();
-            }
-        });
         /* save the sourceFormat in preferences for later
          * Note, this would be controller specific preferences and not the global, overriding, preferences */
         // TODO Use ng-selected="changeSourceFormat()" - Although it seemed to fire multiple times..
@@ -110,12 +109,12 @@ var ARTEMIS;
                 CodeEditor.autoFormatEditor($scope.codeMirror);
             }, 50);
         };
-        $scope.sendMessage = function () {
+        $scope.sendMessage = function (durable) {
             var body = $scope.message;
            ARTEMIS.log.info(body);
-            doSendMessage(body, sendWorked);
+            doSendMessage(durable, body, sendWorked);
         };
-        function doSendMessage(body, onSendCompleteFn) {
+        function doSendMessage(durable, body, onSendCompleteFn) {
             var selection = workspace.selection;
             if (selection) {
                 var mbean = selection.objectName;
@@ -132,53 +131,17 @@ var ARTEMIS;
                         log.info("About to send headers: " + JSON.stringify(headers));
                     }
                     var callback = onSuccess(onSendCompleteFn);
-                    if (selection.domain === "org.apache.camel") {
-                        var target = ARTEMIS.getContextAndTargetEndpoint(workspace);
-                        var uri = target['uri'];
-                        mbean = target['mbean'];
-                        if (mbean && uri) {
-                            // if we are running ARTEMIS 2.14 we can check if its posible to send to the endppoint
-                            var ok = true;
-                            if (ARTEMIS.isARTEMISVersionEQGT(2, 14, workspace, jolokia)) {
-                                var reply = jolokia.execute(mbean, "canSendToEndpoint(java.lang.String)", uri);
-                                if (!reply) {
-                                    Core.notification("warning", "ARTEMIS does not support sending to this endpoint.");
-                                    ok = false;
-                                }
-                            }
-                            if (ok) {
-                                if (headers) {
-                                    jolokia.execute(mbean, "sendBodyAndHeaders(java.lang.String, java.lang.Object, java.util.Map)", uri, body, headers, callback);
-                                }
-                                else {
-                                    jolokia.execute(mbean, "sendStringBody(java.lang.String, java.lang.String)", uri, body, callback);
-                                }
-                            }
-                        }
-                        else {
-                            if (!mbean) {
-                                Core.notification("error", "Could not find ARTEMISContext MBean!");
-                            }
-                            else {
-                                Core.notification("error", "Failed to determine endpoint name!");
-                            }
-                            log.debug("Parsed context and endpoint: ", target);
-                        }
+
+                    ARTEMIS.log.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+                    var user = localStorage["artemisUserName"];
+                    var pwd = localStorage["artemisPassword"];
+                    // AMQ is sending non persistent by default, so make sure we tell to sent persistent by default
+                    if (!headers) {
+                        headers = {};
                     }
-                    else {
-                       ARTEMIS.log.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-                        var user = localStorage["artemisUserName"];
-                        var pwd = localStorage["artemisPassword"];
-                        // AMQ is sending non persistent by default, so make sure we tell to sent persistent by default
-                        if (!headers) {
-                            headers = {};
-                        }
-                       ARTEMIS.log.info("del mode = " + headers["JMSDeliveryMode"]);
-                        if (!headers["JMSDeliveryMode"]) {
-                            headers["JMSDeliveryMode"] = DELIVERY_PERSISTENT;
-                        }
-                        ARTEMISService.artemisConsole.sendMessage(mbean, jolokia, headers, body, user, pwd, callback, onSuccess(callback));
-                    }
+                    var type = 3;
+                    ARTEMISService.artemisConsole.sendMessage(mbean, jolokia, headers, type, body, durable, user, pwd, callback, onSuccess(callback));
+
                 }
             }
         }
@@ -222,32 +185,10 @@ var ARTEMIS;
             // now lets start sending
             onSendFileCompleted(null);
         };
-        /*function isCamelEndpoint() {
-            // TODO check for the ARTEMIS or if its an activemq endpoint
-            return true;
-        }*/
 
         function isJmsEndpoint() {
             // TODO check for the jms/activemq endpoint in ARTEMIS or if its an activemq endpoint
             return true;
-        }
-
-        function loadProfileConfigurationFiles() {
-            if (Fabric.fabricCreated(workspace)) {
-                $scope.container = Fabric.getCurrentContainer(jolokia, ['versionId', 'profileIds']);
-                jolokia.execute(Fabric.managerMBean, "currentContainerConfigurationFiles", onSuccess(onFabricConfigFiles));
-            }
-        }
-
-        function onFabricConfigFiles(response) {
-            $scope.profileFileNameToProfileId = response;
-            // we only want files from the data dir
-            $scope.profileFileNames = Object.keys(response).filter(function (key) {
-                return key.toLowerCase().startsWith('data/');
-            }).sort();
-            $scope.showChoose = $scope.profileFileNames.length ? true : false;
-            $scope.selectedFiles = {};
-            Core.$apply($scope);
         }
     };
     return ARTEMIS;

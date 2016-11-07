@@ -74,20 +74,14 @@ var ARTEMIS = (function(ARTEMIS) {
    // set up the routing for this plugin, these are referenced by the subleveltabs added below
    ARTEMIS.module.config(function($routeProvider) {
       $routeProvider
-         .when('/artemis/createDestination', {
-            templateUrl: ARTEMIS.templatePath + 'createDestination.html'
+         .when('/artemis/createAddress', {
+            templateUrl: ARTEMIS.templatePath + 'createAddress.html'
          })
          .when('/artemis/deleteQueue', {
             templateUrl: ARTEMIS.templatePath + 'deleteQueue.html'
          })
          .when('/artemis/createQueue', {
             templateUrl: ARTEMIS.templatePath + 'createQueue.html'
-         })
-         .when('/artemis/createTopic', {
-            templateUrl: ARTEMIS.templatePath + 'createTopic.html'
-         })
-         .when('/artemis/deleteTopic', {
-            templateUrl: ARTEMIS.templatePath + 'deleteTopic.html'
          })
          .when('/artemis/browseQueue', {
             templateUrl: ARTEMIS.templatePath + 'browseQueue.html'
@@ -112,9 +106,6 @@ var ARTEMIS = (function(ARTEMIS) {
 
       var artemisJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
 
-      workspace.addTreePostProcessor(postProcessTree);
-
-
       ARTEMISService.initArtemis();
 
       // tell hawtio that we have our own custom layout for
@@ -129,7 +120,7 @@ var ARTEMIS = (function(ARTEMIS) {
       workspace.topLevelTabs.push({
          id: "artemis",
          content: "Artemis",
-         title: "example ARTEMIS client",
+         title: "Artemis Broker",
          isValid: function (workspace) {
             return workspace.treeContainsDomainAndProperties(artemisJmxDomain);
          },
@@ -143,12 +134,12 @@ var ARTEMIS = (function(ARTEMIS) {
 
       workspace.subLevelTabs.push({
          content: '<i class="icon-plus"></i> Create',
-         title: "Create a new destination",
+         title: "Create a new address",
          isValid: function (workspace) {
-            return isBroker(workspace, artemisJmxDomain);
+            return isBroker(workspace, artemisJmxDomain) || isAddressFolder(workspace, artemisJmxDomain);
          },
          href: function () {
-            return "#/artemis/createDestination";
+            return "#/artemis/createAddress";
          }
       });
 
@@ -156,7 +147,7 @@ var ARTEMIS = (function(ARTEMIS) {
          content: '<i class="icon-plus"></i> Create',
          title: "Create a new queue",
          isValid: function (workspace) {
-            return isQueuesFolder(workspace, artemisJmxDomain)
+            return isAddress(workspace, artemisJmxDomain)
          },
          href: function () {
             return "#/artemis/createQueue"
@@ -175,28 +166,6 @@ var ARTEMIS = (function(ARTEMIS) {
       });
 
       workspace.subLevelTabs.push({
-         content: '<i class="icon-plus"></i> Create',
-         title: "Create a new topic",
-         isValid: function (workspace) {
-            return isTopicsFolder(workspace, artemisJmxDomain)
-         },
-         href: function () {
-            return "#/artemis/createTopic";
-         }
-      });
-
-      workspace.subLevelTabs.push({
-         content: '<i class="icon-remove"></i> Delete',
-         title: "Delete this topic",
-         isValid: function (workspace) {
-            return isTopic(workspace, artemisJmxDomain)
-         },
-         href: function () {
-            return "#/artemis/deleteTopic";
-         }
-      });
-
-      workspace.subLevelTabs.push({
           content: '<i class="icon-envelope"></i> Browse',
           title: "Browse the messages on the queue",
           isValid: function (workspace) { return isQueue(workspace, artemisJmxDomain); },
@@ -205,8 +174,8 @@ var ARTEMIS = (function(ARTEMIS) {
 
       workspace.subLevelTabs.push({
       content: '<i class="icon-pencil"></i> Send',
-      title: "Send a message to this destination",
-      isValid: function (workspace) { return (isQueue(workspace, artemisJmxDomain) || isTopic(workspace, artemisJmxDomain)); },
+      title: "Send a message to this address",
+      isValid: function (workspace) { return isAddress(workspace, artemisJmxDomain) || isQueue(workspace, artemisJmxDomain); },
       href: function () { return "#/artemis/sendMessage"; }
       });
 
@@ -216,42 +185,19 @@ var ARTEMIS = (function(ARTEMIS) {
           isValid: function (workspace) { return workspace.isTopTabActive("artemis") || workspace.selectionHasDomain(artemisJmxDomain); },
           href: function () { return "#/artemis/diagram"; }
       });
-
-      function postProcessTree(tree) {
-         var activemq = tree.get(artemisJmxDomain);
-         // let JMS as first children within brokers
-
-         ARTEMIS.log.info("activemq=" + activemq);
-         if (activemq) {
-            angular.forEach(activemq.children, function (broker) {
-               ARTEMIS.log.info("broker=" + broker);
-               angular.forEach(broker.children, function (child) {
-
-                  ARTEMIS.log.info("child=" + child);
-                  // lets move JMS module to the front.
-                  var grandChildren = child.children;
-                  if (grandChildren) {
-                     var names = ["JMS"];
-                     angular.forEach(names, function (name) {
-                        var idx = grandChildren.findIndex(function (n) {
-                           return n.title === name;
-                        });
-                        if (idx > 0) {
-                           var old = grandChildren[idx];
-                           grandChildren.splice(idx, 1);
-                           grandChildren.splice(0, 0, old);
-                        }
-                     });
-                  }
-               });
-            });
-         }
-      }
 });
 
 
    function isBroker(workspace, domain) {
-      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Server'}, 4) || workspace.selectionHasDomainAndType(domain, 'Server');
+      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Broker'}, 3);
+   }
+
+   function isAddressFolder(workspace, domain) {
+      return workspace.selectionHasDomainAndLastFolderName(domain, 'Address');
+   }
+
+   function isAddress(workspace, domain) {
+      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Address'});
    }
 
    function isQueuesFolder(workspace, domain) {
@@ -259,17 +205,7 @@ var ARTEMIS = (function(ARTEMIS) {
    }
 
    function isQueue(workspace, domain) {
-      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Queue'}, 5) || workspace.selectionHasDomainAndType(domain, 'Queue');
-   }
-
-   function isTopicsFolder(workspace, domain) {
-      return workspace.selectionHasDomainAndLastFolderName(domain, 'Topic');
-   }
-
-
-   function isTopic(workspace, domain) {
-      //return workspace.selectionHasDomainAndType(jmxDomain, 'Topic');
-      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Topic'}, 5) || workspace.selectionHasDomainAndType(domain, 'Topic');
+      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Queue'});
    }
 
    return ARTEMIS;
