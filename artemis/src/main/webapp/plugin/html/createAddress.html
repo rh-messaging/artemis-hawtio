@@ -1,0 +1,45 @@
+<form class="form-horizontal" ng-controller="ARTEMIS.AddressController">
+    <div class="control-group">
+        <label class="control-label" for="addressName"
+                title="The routing name of this address">Address name</label>
+        <div class="controls">
+            <input id="addressName" type="text" maxlength="300" ng-model="addressName" placeholder="Address Name"/>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label" for="routingType">Routing type</label>
+
+        <div class="controls">
+            <select id="routingType" ng-model="routingType">
+                <option value='0'>Multicast</option>
+                <option value='1'>Anycast</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label" for="defaultDeleteOnNoConsumers"
+               title="The user name to be used when connecting to the broker">Default delete on no consumers</label>
+        <div class="controls">
+            <input id="defaultDeleteOnNoConsumers" type="checkbox" ng-model="defaultDeleteOnNoConsumers" value="false">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label" for="defaultMaxConsumers"
+               title="The user name to be used when connecting to the broker">Default max consumers</label>
+
+        <div class="controls">
+            <input id="defaultMaxConsumers" type="number" placeholder="-1" ng-model="defaultMaxConsumers" autofill/>
+        </div>
+    </div>
+
+
+
+    <div class="control-group">
+        <div class="controls">
+            <button type="submit" class="btn btn-info" ng-click="createAddress(addressName, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers)" ng-disabled="!addressName">Create Address</button>
+        </div>
+    </div>
+</form>

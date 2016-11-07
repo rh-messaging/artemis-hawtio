@@ -30,42 +30,47 @@ var ARTEMIS = (function(ARTEMIS) {
           maintainColumnRatios: false,
           columnDefs: [
              {
-                field: 'JMSMessageID',
+                field: 'messageID',
                 displayName: 'Message ID',
-                cellTemplate: '<div class="ngCellText"><a ng-click="openMessageDialog(row)">{{row.entity.JMSMessageID}}</a></div>',
+                cellTemplate: '<div class="ngCellText"><a ng-click="openMessageDialog(row)">{{row.entity.messageID}}</a></div>',
                 // for ng-grid
-                width: '34%'
+                width: '10%'
              },
              {
-                field: 'JMSType',
+                field: 'userID',
+                displayName: 'User ID',
+                width: '10%'
+             },
+             {
+                field: 'type',
                 displayName: 'Type',
                 width: '10%'
              },
              {
-                field: 'JMSPriority',
+                field: 'durable',
+                displayName: 'Durable',
+                width: '10%'
+             },
+             {
+                field: 'priority',
                 displayName: 'Priority',
                 width: '7%'
              },
              {
-                field: 'JMSTimestamp',
+                field: 'timestamp',
                 displayName: 'Timestamp',
                 width: '19%'
              },
              {
-                field: 'JMSExpiration',
+                field: 'expiration',
                 displayName: 'Expires',
                 width: '10%'
              },
-             {
-                field: 'JMSReplyTo',
-                displayName: 'Reply To',
-                width: '10%'
-             },
-             {
-                field: 'JMSCorrelationID',
-                displayName: 'Correlation ID',
-                width: '10%'
-             }
+              {
+                 field: 'redelivered',
+                 displayName: 'Redelivered',
+                 width: '10%'
+              }
           ],
           afterSelectionChange: afterSelectionChange
        };
@@ -83,7 +88,7 @@ var ARTEMIS = (function(ARTEMIS) {
           filterMessages(filterText);
        });
        $scope.openMessageDialog = function (message) {
-          ARTEMIS.selectCurrentMessage(message, "JMSMessageID", $scope);
+          ARTEMIS.selectCurrentMessage(message, "messageID", $scope);
           if ($scope.row) {
              $scope.mode = CodeEditor.detectTextFormat($scope.row.Text);
              $scope.showMessageDetails = true;
@@ -99,7 +104,7 @@ var ARTEMIS = (function(ARTEMIS) {
              $scope.message = "Moved " + Core.maybePlural(selectedItems.length, "message" + " to " + $scope.queueName);
              var operation = "moveMessageTo(java.lang.String, java.lang.String)";
              angular.forEach(selectedItems, function (item, idx) {
-                var id = item.JMSMessageID;
+                var id = item.messageID;
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : moveSuccess;
                    jolokia.execute(mbean, operation, id, $scope.queueName, onSuccess(callback));
@@ -125,7 +130,7 @@ var ARTEMIS = (function(ARTEMIS) {
              var selectedItems = $scope.gridOptions.selectedItems;
              $scope.message = "Deleted " + Core.maybePlural(selectedItems.length, "message");
              angular.forEach(selectedItems, function (item, idx) {
-                var id = item.JMSMessageID;
+                var id = item.messageID;
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : operationSuccess;
                    ARTEMISService.artemisConsole.deleteMessage(mbean, jolokia, id, onSuccess(callback));
@@ -141,7 +146,7 @@ var ARTEMIS = (function(ARTEMIS) {
              $scope.message = "Retry " + Core.maybePlural(selectedItems.length, "message");
              var operation = "retryMessage(java.lang.String)";
              angular.forEach(selectedItems, function (item, idx) {
-                var id = item.JMSMessageID;
+                var id = item.messageID;
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : operationSuccess;
                    jolokia.execute(mbean, operation, id, onSuccess(callback));
@@ -293,7 +298,6 @@ var ARTEMIS = (function(ARTEMIS) {
        }
 
        function createHeaders(row) {
-          ARTEMIS.log.debug("headers: ", row);
           var answer = {};
           angular.forEach(row, function (value, key) {
              if (!ignoreColumns.any(key) && !flattenColumns.any(key)) {
@@ -319,6 +323,7 @@ var ARTEMIS = (function(ARTEMIS) {
        function loadTable() {
           ARTEMIS.log.info("loading table")
           var objName;
+          $scope.gridOptions.selectedItems.length = 0;
           if (workspace.selection) {
              objName = workspace.selection.objectName;
           }
@@ -358,6 +363,7 @@ var ARTEMIS = (function(ARTEMIS) {
           $scope.messageDialog = false;
           deselectAll();
           Core.notification("success", $scope.message);
+          loadTable();
           setTimeout(loadTable, 50);
        }
 
@@ -394,7 +400,7 @@ var ARTEMIS = (function(ARTEMIS) {
        }
 
        function evalMessage(message, regex) {
-          var jmsHeaders = ['JMSDestination', 'JMSDeliveryMode', 'JMSExpiration', 'JMSPriority', 'JMSMessageID', 'JMSTimestamp', 'JMSCorrelationID', 'JMSReplyTo', 'JMSType', 'JMSRedelivered'];
+          var jmsHeaders = ['JMSDestination', 'JMSDeliveryMode', 'JMSExpiration', 'JMSPriority', 'JMSmessageID', 'JMSTimestamp', 'JMSCorrelationID', 'JMSReplyTo', 'JMSType', 'JMSRedelivered'];
           for (var i = 0; i < jmsHeaders.length; i++) {
              var header = jmsHeaders[i];
              if (message[header] && regex.test(message[header])) {
