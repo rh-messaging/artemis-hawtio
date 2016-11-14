@@ -26,6 +26,10 @@ function ArtemisConsole() {
       jolokia.execute(mbean, "createAddress(java.lang.String,int,boolean,int)", name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers, method);
    };
 
+   this.deleteAddress = function (mbean, jolokia, name, method) {
+      jolokia.execute(mbean, "deleteAddress(java.lang.String)", name,  method);
+   };
+
    this.createQueue = function (mbean, jolokia, address, name, durable, filter, method) {
       jolokia.execute(mbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", address, name, filter, durable, method);
    };

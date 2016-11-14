@@ -201,10 +201,6 @@ text.shadow {
         <i class="icon-remove clickable" title="Clear filter" ng-click="searchFilter = ''"></i>
       </div>
 
-      <div ng-show="isFmc" class="profile-selection-controls">
-        <div fabric-version-selector='selectedVersion'></div>
-      </div>
-
       <div class="section-controls">
         <a href="#"
            class="dropdown-toggle"
@@ -225,35 +221,15 @@ text.shadow {
           </li>
           <li>
             <label class="checkbox">
+              <input type="checkbox" ng-model="viewSettings.address"> Addresses
+            </label>
+          </li>
+          <li>
+            <label class="checkbox">
               <input type="checkbox" ng-model="viewSettings.queue"> Queues
             </label>
           </li>
-          <li>
-            <label class="checkbox">
-              <input type="checkbox" ng-model="viewSettings.topic"> Topics
-            </label>
-          </li>
-          <li>
-            <label class="checkbox">
-              <input type="checkbox" ng-model="viewSettings.allQueue"> All Queues
-            </label>
-          </li>
-          <li>
-            <label class="checkbox">
-              <input type="checkbox" ng-model="viewSettings.allTopic"> All Topics
-            </label>
-          </li>
           <li class="divider"></li>
-          <li ng-show="isFmc">
-            <label class="checkbox">
-              <input type="checkbox" ng-model="viewSettings.group"> Broker groups
-            </label>
-          </li>
-          <li ng-show="isFmc">
-            <label class="checkbox">
-              <input type="checkbox" ng-model="viewSettings.profile"> Profiles
-            </label>
-          </li>
           <li>
             <label class="checkbox">
               <input type="checkbox" ng-model="viewSettings.broker"> Brokers
@@ -267,11 +243,6 @@ text.shadow {
           <li>
             <label class="checkbox">
               <input type="checkbox" ng-model="viewSettings.network"> Networks
-            </label>
-          </li>
-          <li ng-show="isFmc">
-            <label class="checkbox">
-              <input type="checkbox" ng-model="viewSettings.container"> Containers
             </label>
           </li>
           <li class="divider"></li>
@@ -292,9 +263,6 @@ text.shadow {
           </li>
         </ul>
 
-        <a ng-show="isFmc" ng-href="#/fabric/mq/{{selectedVersion.id}}/brokers{{hash}}" title="View the broker and container diagram">
-          <i class="icon-edit"></i> Configuration
-        </a>
       </div>
     </div>
   </div>

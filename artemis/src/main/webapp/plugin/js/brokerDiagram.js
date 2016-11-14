@@ -6,15 +6,7 @@ var ARTEMIS = (function(ARTEMIS) {
 
       Fabric.initScope($scope, $location, jolokia, workspace);
       var artemisJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
-      var isFmc = Fabric.isFMCContainer(workspace);
-      $scope.isFmc = isFmc;
-      if (isFmc) {
-         $scope.version = $routeParams['versionId'];
-         if ($scope.version == 'default-version') {
-            $scope.version = Fabric.getDefaultVersionId(jolokia);
-         }
-         $scope.selectedVersion = {id: $scope.version};
-      }
+
       $scope.selectedNode = null;
       var defaultFlags = {
          panel: true,
@@ -26,10 +18,8 @@ var ARTEMIS = (function(ARTEMIS) {
          broker: true,
          network: true,
          container: false,
+         address: true,
          queue: true,
-         topic: true,
-         allQueue: false,
-         allTopic: false,
          consumer: true,
          producer: true
       };
@@ -37,7 +27,7 @@ var ARTEMIS = (function(ARTEMIS) {
       $scope.shapeSize = {
          broker: 20,
          queue: 14,
-         topic: 14
+         address: 14
       };
       var redrawGraph = Core.throttled(doRedrawGraph, 1000);
       var graphBuilder = new ForceGraph.GraphBuilder();
@@ -82,24 +72,20 @@ var ARTEMIS = (function(ARTEMIS) {
          if (postfix === void 0) {
             postfix = null;
          }
-         if (isFmc && container.jolokia !== jolokia) {
-            Fabric.connectToBroker($scope, container, postfix);
-         }
-         else {
-            var view = "/jmx/attributes?tab=artemis";
-            if (!postfix) {
-               if (brokerName) {
-                  // lets default to the broker view
-                  postfix = "nid=root-" + artemisJmxDomain + "-Broker-" + brokerName;
-               }
+
+         var view = "/jmx/attributes?tab=artemis";
+         if (!postfix) {
+            if (brokerName) {
+               // lets default to the broker view
+               postfix = "nid=root-" + artemisJmxDomain + "-Broker-" + brokerName;
             }
-            if (postfix) {
-               view += "&" + postfix;
-            }
-            var path = Core.url("/#" + view);
-            window.open(path, '_destination');
-            window.focus();
          }
+         if (postfix) {
+            view += "&" + postfix;
+         }
+         var path = Core.url("/#" + view);
+         window.open(path, '_destination');
+         window.focus();
       }
 
       $scope.connectToDestination = function () {
@@ -269,31 +255,14 @@ var ARTEMIS = (function(ARTEMIS) {
       $scope.$watch("searchFilter", function (newValue, oldValue) {
          redrawGraph();
       });
-      if (isFmc) {
-         var unreg = null;
-         $scope.$watch('selectedVersion.id', function (newValue, oldValue) {
-            if (!Core.isBlank(newValue)) {
-               if (unreg) {
-                  unreg();
-               }
-               unreg = Core.register(jolokia, $scope, {
-                  type: 'exec',
-                  mbean: Fabric.mqManagerMBean,
-                  operation: "loadBrokerStatus(java.lang.String)",
-                  arguments: [newValue]
-               }, onSuccess(onBrokerData));
-            }
-         });
-      }
-      else {
-         // lets just use the current stuff from the workspace
-         $scope.$watch('workspace.tree', function () {
-            redrawGraph();
-         });
-         $scope.$on('jmxTreeUpdated', function () {
-            redrawGraph();
-         });
-      }
+      // lets just use the current stuff from the workspace
+      $scope.$watch('workspace.tree', function () {
+         redrawGraph();
+      });
+      $scope.$on('jmxTreeUpdated', function () {
+         redrawGraph();
+      });
+
       function onBrokerData(response) {
          if (response) {
             var responseJson = angular.toJson(response.value);
@@ -306,95 +275,6 @@ var ARTEMIS = (function(ARTEMIS) {
          }
       }
 
-      function redrawFabricBrokers() {
-         var containersToDelete = $scope.activeContainers || {};
-         $scope.activeContainers = {};
-         angular.forEach($scope.brokers, function (brokerStatus) {
-            // only query master brokers which are provisioned correctly
-            brokerStatus.validContainer = brokerStatus.alive && brokerStatus.master && brokerStatus.provisionStatus === "success";
-            // don't use type field so we can use it for the node types..
-            renameTypeProperty(brokerStatus);
-            //log.info("Broker status: " + angular.toJson(brokerStatus, true));
-            var groupId = brokerStatus.group;
-            var profileId = brokerStatus.profile;
-            var brokerId = brokerStatus.brokerName;
-            var containerId = brokerStatus.container;
-            var versionId = brokerStatus.version || "1.0";
-            var group = getOrAddNode("group", groupId, brokerStatus, function () {
-               return {
-                  /*
-                   navUrl: ,
-                   image: {
-                   url: "/hawtio/img/icons/osgi/bundle.png",
-                   width: 32,
-                   height:32
-                   },
-                   */
-                  typeLabel: "Broker Group",
-                  popup: {
-                     title: "Broker Group: " + groupId,
-                     content: "<p>" + groupId + "</p>"
-                  }
-               };
-            });
-            var profile = getOrAddNode("profile", profileId, brokerStatus, function () {
-               return {
-                  typeLabel: "Profile",
-                  popup: {
-                     title: "Profile: " + profileId,
-                     content: "<p>" + profileId + "</p>"
-                  }
-               };
-            });
-            // TODO do we need to create a physical broker node per container and logical broker maybe?
-            var container = null;
-            if (containerId) {
-               container = getOrAddNode("container", containerId, brokerStatus, function () {
-                  return {
-                     containerId: containerId,
-                     typeLabel: "Container",
-                     popup: {
-                        title: "Container: " + containerId,
-                        content: "<p>" + containerId + " version: " + versionId + "</p>"
-                     }
-                  };
-               });
-            }
-            var master = brokerStatus.master;
-            var broker = getOrAddBroker(master, brokerId, groupId, containerId, container, brokerStatus);
-            if (container && container.validContainer) {
-               var key = container.containerId;
-               $scope.activeContainers[key] = container;
-               delete containersToDelete[key];
-            }
-            // add the links...
-            if ($scope.viewSettings.group) {
-               if ($scope.viewSettings.profile) {
-                  addLink(group, profile, "group");
-                  addLink(profile, broker, "broker");
-               }
-               else {
-                  addLink(group, broker, "group");
-               }
-            }
-            else {
-               if ($scope.viewSettings.profile) {
-                  addLink(profile, broker, "broker");
-               }
-            }
-            if (container) {
-               if ((master || $scope.viewSettings.slave) && $scope.viewSettings.container) {
-                  addLink(broker, container, "container");
-                  container.destinationLinkNode = container;
-               }
-               else {
-                  container.destinationLinkNode = broker;
-               }
-            }
-         });
-         redrawActiveContainers();
-      }
-
       function redrawLocalBroker() {
          var container = {
             jolokia: jolokia
@@ -404,7 +284,7 @@ var ARTEMIS = (function(ARTEMIS) {
             containerId: container
          };
          var brokers = [];
-         jolokia.search(artemisJmxDomain + ":type=Broker,brokerName=*,module=JMS,serviceType=Server", onSuccess(function (response) {
+         jolokia.search(artemisJmxDomain + ":type=Broker,brokerName=*,serviceType=Broker", onSuccess(function (response) {
             angular.forEach(response, function (objectName) {
                var atts = ARTEMISService.artemisConsole.getServerAttributes(jolokia, objectName);
                var val = atts.value;
@@ -451,56 +331,53 @@ var ARTEMIS = (function(ARTEMIS) {
 
       function doRedrawGraph() {
          graphBuilder = new ForceGraph.GraphBuilder();
-         if (isFmc) {
-            redrawFabricBrokers();
-         }
-         else {
-            redrawLocalBroker();
-         }
+         redrawLocalBroker();
       }
 
       function brokerNameMarkup(brokerName) {
          return brokerName ? "<p></p>broker: " + brokerName + "</p>" : "";
       }
 
-      function matchesDestinationName(destinationName, typeName) {
-         if (destinationName) {
-            var selection = workspace.selection;
-            if (selection && selection.domain === artemisJmxDomain) {
-               var type = selection.entries["destinationType"];
-               if (type) {
-                  if ((type === "Queue" && typeName === "topic") || (type === "Topic" && typeName === "queue")) {
-                     return false;
-                  }
-               }
-               var destName = selection.entries["destinationName"];
-               if (destName) {
-                  if (destName !== destinationName)
-                     return false;
-               }
-            }
-            // TODO if the current selection is a destination...
-            return !$scope.searchFilter || destinationName.indexOf($scope.searchFilter) >= 0;
-         }
-         return false;
-      }
-
       function onContainerJolokia(containerJolokia, container, id, brokers) {
          if (containerJolokia) {
             container.jolokia = containerJolokia;
-            function getOrAddDestination(properties, typeName, destinationName, brokerName) {
-               /*if (!matchesDestinationName(destinationName, typeName)) {
-                  return null;
-               }*/
-               // should we be filtering this destination out
-               /*var hideFlag = "topic" === typeName ? $scope.viewSettings.topic : $scope.viewSettings.queue;
-               if (!hideFlag) {
-                  return null;
-               }*/
+            function getOrAddQueue(properties, typeName, queueName, addressName, brokerName) {
+               var queue = getOrAddNode(typeName.toLowerCase(), queueName, properties, function () {
+                  var objectName = "";
+                  if (addressName) {
+                     objectName = artemisJmxDomain + ":type=Broker,brokerName=" + brokerName + ",parentType=Address,parentName=" + addressName + ",serviceType=Queue,name=" + queueName;
+                  }
+                  ARTEMIS.log.info(objectName);
+                  var answer = {
+                     typeLabel: typeName,
+                     brokerContainer: container,
+                     objectName: objectName,
+                     jolokia: containerJolokia,
+                     popup: {
+                        title: "queue: " + queueName,
+                        content: "address:" + addressName
+                     }
+                  };
+                  if (!addressName) {
+                     containerJolokia.search(artemisJmxDomain + ":serviceType=Queue,name=" + queueName + ",*", onSuccess(function (response) {
+                        if (response && response.length) {
+                           answer.objectName = response[0];
+                        }
+                     }));
+                  }
+                  return answer;
+               });
+               if (queue && $scope.viewSettings.broker && addressName) {
+                  addLinkIds("address:" + addressName, queue["id"], "queue");
+               }
+               return queue;
+            }
+
+            function getOrAddAddress(properties, typeName, destinationName, brokerName) {
                var destination = getOrAddNode(typeName.toLowerCase(), destinationName, properties, function () {
                   var objectName = "";
                   if (brokerName) {
-                     objectName = artemisJmxDomain + ":type=Broker,brokerName=" + brokerName + ",module=JMS,serviceType=" + typeName + ",name=" + destinationName;
+                     objectName = artemisJmxDomain + ":type=Broker,brokerName=" + brokerName + ",serviceType=" + typeName + ",name=" + destinationName;
                   }
                   var answer = {
                      typeLabel: typeName,
@@ -522,44 +399,25 @@ var ARTEMIS = (function(ARTEMIS) {
                   return answer;
                });
                if (destination && $scope.viewSettings.broker && brokerName) {
-                  addLinkIds(brokerNodeId(brokerName), destination["id"], "destination");
+                  addLinkIds(brokerNodeId(brokerName), destination["id"], "address");
                }
                return destination;
             }
 
-            // find JMS queues
-            if ($scope.viewSettings.allQueue) {
-               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,module=JMS,serviceType=Queue", onSuccess(function (response) {
-               angular.forEach(response, function (objectName) {
-                  var details = Core.parseMBean(objectName);
-                  if (details) {
-                     var properties = details['attributes'];
-                     if (properties) {
-                        configureDestinationProperties(properties);
-                        var brokerName = properties.brokerName;
-                        var typeName = properties.serviceType || properties.destinationType;
-                        var destinationName = properties.name;
-                        var destination = getOrAddDestination(properties, typeName, destinationName, brokerName);
-                     }
-                  }
-               });
-               graphModelUpdated();
-            }));
-            }
 
-            // find JMS Topics
-            if ($scope.viewSettings.allTopic) {
-               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,module=JMS,serviceType=Topic", onSuccess(function (response) {
+            // find Addresses
+            if ($scope.viewSettings.address) {
+               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Address", onSuccess(function (response) {
                angular.forEach(response, function (objectName) {
                   var details = Core.parseMBean(objectName);
                   if (details) {
                      var properties = details['attributes'];
                      if (properties) {
-                        configureDestinationProperties(properties);
+                        //configureDestinationProperties(properties);
                         var brokerName = properties.brokerName;
-                        var typeName = properties.serviceType || properties.destinationType;
-                        var destinationName = properties.name;
-                        var destination = getOrAddDestination(properties, typeName, destinationName, brokerName);
+                        var typeName = properties.serviceType;
+                        var addressName = properties.name;
+                        var destination = getOrAddAddress(properties, typeName, addressName, brokerName);
                      }
                   }
                });
@@ -567,12 +425,34 @@ var ARTEMIS = (function(ARTEMIS) {
                }));
             }
 
+
+            // find queues
+            if ($scope.viewSettings.queue) {
+               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Queue", onSuccess(function (response) {
+               angular.forEach(response, function (objectName) {
+                  var details = Core.parseMBean(objectName);
+                  if (details) {
+                     var properties = details['attributes'];
+                     if (properties) {
+                        configureDestinationProperties(properties);
+                        var brokerName = properties.brokerName;
+                        var addressName = properties.parentName;
+                        var typeName = properties.serviceType;
+                        var queueName = properties.name;
+                        var destination = getOrAddQueue(properties, typeName, queueName, addressName, brokerName);
+                     }
+                  }
+               });
+               graphModelUpdated();
+            }));
+            }
             angular.forEach(brokers, function (broker) {
-               mBean = artemisJmxDomain + ":type=Broker,brokerName=" + broker.brokerId + ",module=JMS,serviceType=Server";
+               mBean = artemisJmxDomain + ":type=Broker,brokerName=" + broker.brokerId + ",serviceType=Broker";
                // find consumers
                if ($scope.viewSettings.consumer) {
                   ARTEMISService.artemisConsole.getConsumers(mBean, containerJolokia, onSuccess(function (properties) {
                      consumers = properties.value;
+                     ARTEMIS.log.info(consumers);
                      //\"durable\":false,\"queueName\":\"jms.queue.TEST\",\"creationTime\":1453725131250,\"consumerID\":0,\"browseOnly\":false,\"destinationName\":\"TEST\",\"connectionID\":\"1002661336\",\"destinationType\":\"queue\",\"sessionID\":\"a7fb1e89-c35f-11e5-b064-54ee7531eccb\"
                      angular.forEach(angular.fromJson(consumers), function (consumer) {
                         if (consumer) {
@@ -580,31 +460,20 @@ var ARTEMIS = (function(ARTEMIS) {
                            configureDestinationProperties(consumer);
                            var consumerId = consumer.sessionID + "-" + consumer.consumerID;
                            if (consumerId) {
-                              var destinationName = consumer.destinationName;
-                              var typeName;
-                              if (consumer.queueName) {
-                                 typeName = "Queue";
-                              }
-                              else {
-                                 typeName = "Topic"
-                              }
-                              var destination = getOrAddDestination(consumer, typeName, "\"" + destinationName + "\"", broker.brokerId);
-                              if (destination) {
-                                 addLink(container.destinationLinkNode, destination, "destination");
-                                 var consumerNode = getOrAddNode("consumer", consumerId, consumer, function () {
-                                    return {
-                                       typeLabel: "Consumer",
-                                       brokerContainer: container,
-                                       //objectName: "null",
-                                       jolokia: containerJolokia,
-                                       popup: {
-                                          title: "Consumer: " + consumerId,
-                                          content: "<p>client: " + (consumer.connectionID || "") + "</p> " + brokerNameMarkup(broker.brokerId)
-                                       }
-                                    };
-                                 });
-                                 addLink(destination, consumerNode, "consumer");
-                              }
+                              var queueName = consumer.queueName;
+                              var consumerNode = getOrAddNode("consumer", consumerId, consumer, function () {
+                                 return {
+                                    typeLabel: "Consumer",
+                                    brokerContainer: container,
+                                    //objectName: "null",
+                                    jolokia: containerJolokia,
+                                    popup: {
+                                       title: "Consumer: " + consumerId,
+                                       content: "<p>client: " + (consumer.connectionID || "") + "</p> " + brokerNameMarkup(broker.brokerId)
+                                    }
+                                 };
+                              });
+                              addLinkIds("queue:\"" + queueName + "\"", consumerNode["id"], "consumer");
                            }
                         }
                      });
@@ -618,8 +487,11 @@ var ARTEMIS = (function(ARTEMIS) {
 
                   ARTEMISService.artemisConsole.getRemoteBrokers(mBean, containerJolokia, onSuccess(function (properties) {
                      remoteBrokers = properties.value;
+
+                     ARTEMIS.log.info("remoteBrokers="+angular.toJson(remoteBrokers))
                      angular.forEach(angular.fromJson(remoteBrokers), function (remoteBroker) {
                         if (remoteBroker) {
+                           ARTEMIS.log.info("remote="+angular.toJson(remoteBroker))
                            if (broker.nodeId != remoteBroker.nodeID) {
                               getOrAddBroker(true, "\"" + remoteBroker.live + "\"", remoteBroker.nodeID, "remote", null, properties);
                               addLinkIds("broker:" + broker.brokerId, "broker:" + "\"" + remoteBroker.live + "\"", "network");
@@ -643,52 +515,6 @@ var ARTEMIS = (function(ARTEMIS) {
                   }));
                }
             });
-
-            // find producers
-            //todo Artemis doesnt support server side producer info but leaving this here in case its ever added
-          /*  if ($scope.viewSettings.producer) {
-               angular.forEach(brokers, function (brokerName) {
-               mBean = artemisJmxDomain + ":type=Broker,brokerName=" + brokerName + ",module=JMS,serviceType=Server";
-               ARTEMISService.artemisConsole.getProducers(mBean, containerJolokia, onSuccess(function (properties) {
-                  producers = properties.value;
-                  angular.forEach(angular.fromJson(producers), function (producer) {
-                     if (producer) {
-
-                        configureDestinationProperties(consumer);
-                        var producerId = consumer.sessionID + ":" + consumer.producerID;
-                        if (producerId) {
-                           var destinationName = consumer.destinationName;
-                           var typeName;
-                           if (consumer.queueName) {
-                              typeName = "Queue";
-                           }
-                           else {
-                              typeName = "Topic"
-                           }
-                           var destination = getOrAddDestination(consumer, typeName, "\"" + destinationName + "\"", brokerName);
-                           ARTEMIS.log.info("found " + destination);
-                           if (destination) {
-                              addLink(container.destinationLinkNode, destination, "destination");
-                              var consumerNode = getOrAddNode("producer", producerId, producer, function () {
-                                 return {
-                                    typeLabel: "Producer",
-                                    brokerContainer: container,
-                                    //objectName: objectName,
-                                    jolokia: containerJolokia,
-                                    popup: {
-                                       title: "Producer: " + producerId,
-                                       content: "<p>client: " + (producer.connectionID || "") + "</p> " + brokerNameMarkup(brokerName)
-                                    }
-                                 };
-                              });
-                              addLink(destination, producerNode, "producer");
-                           }
-                        }
-                     }
-                  });
-               }));
-            });
-            }*/
          }
       }
 
@@ -713,7 +539,7 @@ var ARTEMIS = (function(ARTEMIS) {
             });
             if (!broker['objectName']) {
                // lets try guess the mbean name
-               broker['objectName'] = artemisJmxDomain + ":type=Broker,brokerName=" + brokerId + ",module=JMS,serviceType=Server";
+               broker['objectName'] = artemisJmxDomain + ":type=Broker,brokerName=" + brokerId + ",serviceType=Broker";
                ARTEMIS.log.debug("Guessed broker mbean: " + broker['objectName']);
             }
             if (!broker['brokerContainer'] && container) {
@@ -779,6 +605,7 @@ var ARTEMIS = (function(ARTEMIS) {
       }
 
       function addLinkIds(id1, id2, linkType) {
+         ARTEMIS.log.info("adding " + id1 + " to " + id2 + " " + linkType)
          if (id1 && id2) {
             graphBuilder.addLink(id1, id2, linkType);
          }
