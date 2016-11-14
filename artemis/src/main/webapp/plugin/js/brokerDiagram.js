@@ -487,8 +487,11 @@ var ARTEMIS = (function(ARTEMIS) {
 
                   ARTEMISService.artemisConsole.getRemoteBrokers(mBean, containerJolokia, onSuccess(function (properties) {
                      remoteBrokers = properties.value;
+
+                     ARTEMIS.log.info("remoteBrokers="+angular.toJson(remoteBrokers))
                      angular.forEach(angular.fromJson(remoteBrokers), function (remoteBroker) {
                         if (remoteBroker) {
+                           ARTEMIS.log.info("remote="+angular.toJson(remoteBroker))
                            if (broker.nodeId != remoteBroker.nodeID) {
                               getOrAddBroker(true, "\"" + remoteBroker.live + "\"", remoteBroker.nodeID, "remote", null, properties);
                               addLinkIds("broker:" + broker.brokerId, "broker:" + "\"" + remoteBroker.live + "\"", "network");
