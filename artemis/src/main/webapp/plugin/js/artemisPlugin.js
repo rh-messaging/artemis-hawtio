@@ -77,6 +77,9 @@ var ARTEMIS = (function(ARTEMIS) {
          .when('/artemis/createAddress', {
             templateUrl: ARTEMIS.templatePath + 'createAddress.html'
          })
+         .when('/artemis/deleteAddress', {
+            templateUrl: ARTEMIS.templatePath + 'deleteAddress.html'
+         })
          .when('/artemis/deleteQueue', {
             templateUrl: ARTEMIS.templatePath + 'deleteQueue.html'
          })
@@ -140,6 +143,17 @@ var ARTEMIS = (function(ARTEMIS) {
          },
          href: function () {
             return "#/artemis/createAddress";
+         }
+      });
+
+      workspace.subLevelTabs.push({
+         content: '<i class="icon-plus"></i> Delete',
+         title: "Create a new address",
+         isValid: function (workspace) {
+            return isAddress(workspace, artemisJmxDomain);
+         },
+         href: function () {
+            return "#/artemis/deleteAddress";
          }
       });
 

@@ -63,7 +63,7 @@ var ARTEMIS = (function(ARTEMIS) {
                 }
             }
         };
-        $scope.deleteAddress = function (isQueue) {
+        $scope.deleteAddress = function () {
             var selection = workspace.selection;
             var entries = selection.entries;
             var mbean = getBrokerMBean(jolokia);
@@ -73,11 +73,14 @@ var ARTEMIS = (function(ARTEMIS) {
                     var domain = selection.domain;
                     var name = entries["name"];
                     name = name.unescapeHTML();
+                    if (name.charAt(0) === '"' && name.charAt(name.length -1) === '"')
+                    {
+                        name = name.substr(1,name.length -2);
+                    }
                     ARTEMIS.log.info(name);
                     var operation;
                     $scope.message = "Deleted address " + name;
                     ARTEMISService.artemisConsole.deleteAddress(mbean, jolokia, name, onSuccess(deleteSuccess));
-
                 }
             }
         };
