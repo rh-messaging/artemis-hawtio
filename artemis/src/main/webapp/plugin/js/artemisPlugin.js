@@ -103,7 +103,7 @@ var ARTEMIS = (function(ARTEMIS) {
 
    // one-time initialization happens in the run function
    // of our module
-   ARTEMIS.module.run(function(workspace, viewRegistry, preferencesRegistry, localStorage, jolokia, ARTEMISService, $rootScope) {
+   ARTEMIS.module.run(function(workspace, viewRegistry, helpRegistry, preferencesRegistry, localStorage, jolokia, ARTEMISService, $rootScope) {
       // let folks know we're actually running
       ARTEMIS.log.info("plugin running " + jolokia);
 
@@ -114,6 +114,10 @@ var ARTEMIS = (function(ARTEMIS) {
       // tell hawtio that we have our own custom layout for
       // our view
       viewRegistry["artemis"] = ARTEMIS.templatePath + "artemisLayout.html";
+
+      helpRegistry.addUserDoc("artemis", "../artemis-plugin/plugin/doc/help.md", function () {
+         return workspace.treeContainsDomainAndProperties(artemisJmxDomain);
+     });
 
       preferencesRegistry.addTab("Artemis", ARTEMIS.templatePath + "preferences.html", function () {
          return workspace.treeContainsDomainAndProperties(artemisJmxDomain);
