@@ -339,6 +339,127 @@ var ARTEMIS = (function(ARTEMIS) {
       }
 
       function onContainerJolokia(containerJolokia, container, id, brokers) {
+         function createQueues(brokers) {
+            if ($scope.viewSettings.queue) {
+               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Queue", onSuccess(function (response) {
+                  angular.forEach(response, function (objectName) {
+                     var details = Core.parseMBean(objectName);
+                     if (details) {
+                        var properties = details['attributes'];
+                        if (properties) {
+                           configureDestinationProperties(properties);
+                           var brokerName = properties.brokerName;
+                           var addressName = properties.parentName;
+                           var typeName = properties.serviceType;
+                           var queueName = properties.name;
+                           var destination = getOrAddQueue(properties, typeName, queueName, addressName, brokerName);
+                        }
+                     }
+                  });
+                  graphModelUpdated();
+                  createConsumersAndNetwork(brokers);
+               }));
+            } else {
+               createConsumersAndNetwork(brokers);
+            }
+         }
+
+         function createAddresses(brokers) {
+            if ($scope.viewSettings.address) {
+               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Address", onSuccess(function (response) {
+                  angular.forEach(response, function (objectName) {
+                     var details = Core.parseMBean(objectName);
+                     if (details) {
+                        var properties = details['attributes'];
+                        if (properties) {
+                           //configureDestinationProperties(properties);
+                           var brokerName = properties.brokerName;
+                           var typeName = properties.serviceType;
+                           var addressName = properties.name;
+                           var destination = getOrAddAddress(properties, typeName, addressName, brokerName);
+                        }
+                     }
+                  });
+                  createQueues(brokers);
+                  graphModelUpdated();
+               }));
+            } else {
+               createQueues(brokers);
+            }
+         }
+
+         function createConsumersAndNetwork(brokers) {
+            angular.forEach(brokers, function (broker) {
+               mBean = artemisJmxDomain + ":type=Broker,brokerName=" + broker.brokerId + ",serviceType=Broker";
+               // find consumers
+               if ($scope.viewSettings.consumer) {
+                  ARTEMISService.artemisConsole.getConsumers(mBean, containerJolokia, onSuccess(function (properties) {
+                     consumers = properties.value;
+                     ARTEMIS.log.info(consumers);
+                     //\"durable\":false,\"queueName\":\"jms.queue.TEST\",\"creationTime\":1453725131250,\"consumerID\":0,\"browseOnly\":false,\"destinationName\":\"TEST\",\"connectionID\":\"1002661336\",\"destinationType\":\"queue\",\"sessionID\":\"a7fb1e89-c35f-11e5-b064-54ee7531eccb\"
+                     angular.forEach(angular.fromJson(consumers), function (consumer) {
+                        if (consumer) {
+
+                           configureDestinationProperties(consumer);
+                           var consumerId = consumer.sessionID + "-" + consumer.consumerID;
+                           if (consumerId) {
+                              var queueName = consumer.queueName;
+                              var consumerNode = getOrAddNode("consumer", consumerId, consumer, function () {
+                                 return {
+                                    typeLabel: "Consumer",
+                                    brokerContainer: container,
+                                    //objectName: "null",
+                                    jolokia: containerJolokia,
+                                    popup: {
+                                       title: "Consumer: " + consumerId,
+                                       content: "<p>client: " + (consumer.connectionID || "") + "</p> " + brokerNameMarkup(broker.brokerId)
+                                    }
+                                 };
+                              });
+                              addLinkIds("queue:\"" + queueName + "\"", consumerNode["id"], "consumer");
+                           }
+                        }
+                     });
+                     graphModelUpdated();
+                  }));
+               }
+
+
+               // find networks of brokers
+               if ($scope.viewSettings.network && $scope.viewSettings.broker) {
+
+                  ARTEMISService.artemisConsole.getRemoteBrokers(mBean, containerJolokia, onSuccess(function (properties) {
+                     remoteBrokers = properties.value;
+
+                     ARTEMIS.log.info("remoteBrokers=" + angular.toJson(remoteBrokers))
+                     angular.forEach(angular.fromJson(remoteBrokers), function (remoteBroker) {
+                        if (remoteBroker) {
+                           ARTEMIS.log.info("remote=" + angular.toJson(remoteBroker))
+                           if (broker.nodeId != remoteBroker.nodeID) {
+                              getOrAddBroker(true, "\"" + remoteBroker.live + "\"", remoteBroker.nodeID, "remote", null, properties);
+                              addLinkIds("broker:" + broker.brokerId, "broker:" + "\"" + remoteBroker.live + "\"", "network");
+
+                              var backup = remoteBroker.backup;
+                              if (backup) {
+                                 getOrAddBroker(false, "\"" + backup + "\"", remoteBroker.nodeID, "remote", null, properties);
+                                 addLinkIds("broker:" + "\"" + remoteBroker.live + "\"", "broker:" + "\"" + backup + "\"", "network");
+                              }
+                           }
+                           else {
+                              var backup = remoteBroker.backup;
+                              if (backup) {
+                                 getOrAddBroker(false, "\"" + remoteBroker.backup + "\"", remoteBroker.nodeID, "remote", null, properties);
+                                 addLinkIds("broker:" + broker.brokerId, "broker:" + "\"" + remoteBroker.backup + "\"", "network");
+                              }
+                           }
+                        }
+                     });
+                     graphModelUpdated();
+                  }));
+               }
+            });
+         }
+
          if (containerJolokia) {
             container.jolokia = containerJolokia;
             function getOrAddQueue(properties, typeName, queueName, addressName, brokerName) {
@@ -404,117 +525,7 @@ var ARTEMIS = (function(ARTEMIS) {
                return destination;
             }
 
-
-            // find Addresses
-            if ($scope.viewSettings.address) {
-               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Address", onSuccess(function (response) {
-               angular.forEach(response, function (objectName) {
-                  var details = Core.parseMBean(objectName);
-                  if (details) {
-                     var properties = details['attributes'];
-                     if (properties) {
-                        //configureDestinationProperties(properties);
-                        var brokerName = properties.brokerName;
-                        var typeName = properties.serviceType;
-                        var addressName = properties.name;
-                        var destination = getOrAddAddress(properties, typeName, addressName, brokerName);
-                     }
-                  }
-               });
-               graphModelUpdated();
-               }));
-            }
-
-
-            // find queues
-            if ($scope.viewSettings.queue) {
-               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Queue", onSuccess(function (response) {
-               angular.forEach(response, function (objectName) {
-                  var details = Core.parseMBean(objectName);
-                  if (details) {
-                     var properties = details['attributes'];
-                     if (properties) {
-                        configureDestinationProperties(properties);
-                        var brokerName = properties.brokerName;
-                        var addressName = properties.parentName;
-                        var typeName = properties.serviceType;
-                        var queueName = properties.name;
-                        var destination = getOrAddQueue(properties, typeName, queueName, addressName, brokerName);
-                     }
-                  }
-               });
-               graphModelUpdated();
-            }));
-            }
-            angular.forEach(brokers, function (broker) {
-               mBean = artemisJmxDomain + ":type=Broker,brokerName=" + broker.brokerId + ",serviceType=Broker";
-               // find consumers
-               if ($scope.viewSettings.consumer) {
-                  ARTEMISService.artemisConsole.getConsumers(mBean, containerJolokia, onSuccess(function (properties) {
-                     consumers = properties.value;
-                     ARTEMIS.log.info(consumers);
-                     //\"durable\":false,\"queueName\":\"jms.queue.TEST\",\"creationTime\":1453725131250,\"consumerID\":0,\"browseOnly\":false,\"destinationName\":\"TEST\",\"connectionID\":\"1002661336\",\"destinationType\":\"queue\",\"sessionID\":\"a7fb1e89-c35f-11e5-b064-54ee7531eccb\"
-                     angular.forEach(angular.fromJson(consumers), function (consumer) {
-                        if (consumer) {
-
-                           configureDestinationProperties(consumer);
-                           var consumerId = consumer.sessionID + "-" + consumer.consumerID;
-                           if (consumerId) {
-                              var queueName = consumer.queueName;
-                              var consumerNode = getOrAddNode("consumer", consumerId, consumer, function () {
-                                 return {
-                                    typeLabel: "Consumer",
-                                    brokerContainer: container,
-                                    //objectName: "null",
-                                    jolokia: containerJolokia,
-                                    popup: {
-                                       title: "Consumer: " + consumerId,
-                                       content: "<p>client: " + (consumer.connectionID || "") + "</p> " + brokerNameMarkup(broker.brokerId)
-                                    }
-                                 };
-                              });
-                              addLinkIds("queue:\"" + queueName + "\"", consumerNode["id"], "consumer");
-                           }
-                        }
-                     });
-                     graphModelUpdated();
-                  }));
-               }
-
-
-               // find networks of brokers
-               if ($scope.viewSettings.network && $scope.viewSettings.broker) {
-
-                  ARTEMISService.artemisConsole.getRemoteBrokers(mBean, containerJolokia, onSuccess(function (properties) {
-                     remoteBrokers = properties.value;
-
-                     ARTEMIS.log.info("remoteBrokers="+angular.toJson(remoteBrokers))
-                     angular.forEach(angular.fromJson(remoteBrokers), function (remoteBroker) {
-                        if (remoteBroker) {
-                           ARTEMIS.log.info("remote="+angular.toJson(remoteBroker))
-                           if (broker.nodeId != remoteBroker.nodeID) {
-                              getOrAddBroker(true, "\"" + remoteBroker.live + "\"", remoteBroker.nodeID, "remote", null, properties);
-                              addLinkIds("broker:" + broker.brokerId, "broker:" + "\"" + remoteBroker.live + "\"", "network");
-
-                              var backup = remoteBroker.backup;
-                              if (backup) {
-                                 getOrAddBroker(false, "\"" + backup + "\"", remoteBroker.nodeID, "remote", null, properties);
-                                 addLinkIds("broker:"  + "\"" + remoteBroker.live + "\"", "broker:" + "\"" + backup + "\"", "network");
-                              }
-                           }
-                           else {
-                              var backup = remoteBroker.backup;
-                              if (backup) {
-                                 getOrAddBroker(false, "\"" + remoteBroker.backup + "\"", remoteBroker.nodeID, "remote", null, properties);
-                                 addLinkIds("broker:" + broker.brokerId, "broker:" + "\"" + remoteBroker.backup + "\"", "network");
-                              }
-                           }
-                        }
-                     });
-                     graphModelUpdated();
-                  }));
-               }
-            });
+            createAddresses(brokers);
          }
       }
 
