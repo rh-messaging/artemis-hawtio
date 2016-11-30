@@ -1,12 +1,24 @@
 <form class="form-horizontal" ng-controller="ARTEMIS.QueueController">
 
     <div class="control-group">
-           <label class="control-label" for="queueName"
-                   title="The routing name of this address">Queue name</label>
-           <div class="controls">
-               <input id="queueName" type="text" maxlength="300" ng-model="queueName" placeholder="Address Name"/>
-           </div>
-       </div>
+        <label class="control-label" for="queueName"
+               title="The routing name of this address">Queue name</label>
+        <div class="controls">
+            <input id="queueName" type="text" maxlength="300" ng-model="queueName" placeholder="Queue Name"/>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label" for="routingType">Routing type</label>
+
+        <div class="controls">
+            <select id="routingType" ng-model="routingType">
+                <option value='0'>Multicast</option>
+                <option value='1'>Anycast</option>
+                <option value='2'>Both</option>
+            </select>
+        </div>
+    </div>
 
 
     <div class="control-group">
@@ -26,8 +38,24 @@
     </div>
 
     <div class="control-group">
+        <label class="control-label" for="maxConsumers"
+               title="The maximum consumers the queue can have">Max Consumers</label>
         <div class="controls">
-            <button type="submit" class="btn btn-info" ng-click="createQueue(queueName, durable, filter)" ng-disabled="!queueName">Create Queue</button>
+            <input id="maxConsumers" type="number" ng-model="maxConsumers" placeholder="maxConsumers"/>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label" for="purgeWhenNoConsumers"
+               title="Whether or not this queue should be purged (emptied and paused) when there are no consumers">Purge when no consumers</label>
+        <div class="controls">
+            <input id="purgeWhenNoConsumers" type="checkbox" ng-model="purgeWhenNoConsumers" value="false"/>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="controls">
+            <button type="submit" class="btn btn-info" ng-click="createQueue(queueName, routingType, durable, filter, maxConsumers, purgeWhenNoConsumers)" ng-disabled="!queueName">Create Queue</button>
         </div>
     </div>
 </form>

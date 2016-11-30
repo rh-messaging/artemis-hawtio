@@ -16,14 +16,6 @@ var ARTEMIS = (function(ARTEMIS) {
                 'value': 0,
                 'converter': parseInt,
                 'formatter': parseInt
-            },
-            'defaultDeleteOnNoConsumers': {
-                'value': false,
-                'converter': Core.parseBooleanValue
-            },
-            'defaultMaxConsumers': {
-                'value': -1 ,
-                'converter': parseInt
             }
         });
         var artemisJmxDomain = localStorage['artemisJmxDomain'] || "org.apache.activemq.artemis";
@@ -48,18 +40,23 @@ var ARTEMIS = (function(ARTEMIS) {
             Core.notification("success", $scope.message);
             $scope.workspace.loadTree();
         }
-        $scope.createAddress = function (name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers) {
+        $scope.createAddress = function (name, routingType) {
             var mbean = getBrokerMBean(jolokia);
             if (mbean) {
                 if (routingType == 0) {
                     $scope.message = "Created  Multicast Address " + name;
                     ARTEMIS.log.info($scope.message);
-                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers, onSuccess(operationSuccess));
+                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "MULTICAST", onSuccess(operationSuccess));
                 }
-                else {
+                else if (routingType == 1) {
                     $scope.message = "Created Anycast Address " + name;
                     ARTEMIS.log.info($scope.message);
-                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers, onSuccess(operationSuccess));
+                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "ANYCAST", onSuccess(operationSuccess));
+                }
+                else {
+                    $scope.message = "Created Anycast/Multicast Address " + name;
+                    ARTEMIS.log.info($scope.message);
+                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "ANYCAST,MULTICAST", onSuccess(operationSuccess));
                 }
             }
         };

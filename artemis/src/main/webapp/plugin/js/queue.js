@@ -13,6 +13,20 @@ var ARTEMIS = (function(ARTEMIS) {
     ARTEMIS.QueueController = function ($scope, workspace, ARTEMISService, jolokia, localStorage) {
         Core.initPreferenceScope($scope, localStorage, {
             'durable': {
+                'value': true,
+                'converter': Core.parseBooleanValue
+            },
+            'routingType': {
+                'value': 0,
+                'converter': parseInt,
+                'formatter': parseInt
+            },
+            'maxConsumers': {
+                'value': -1,
+                'converter': parseInt,
+                'formatter': parseInt
+            },
+            'purgeWhenNoConsumers': {
                 'value': false,
                 'converter': Core.parseBooleanValue
             }
@@ -41,7 +55,7 @@ var ARTEMIS = (function(ARTEMIS) {
             Core.notification("success", $scope.message);
             $scope.workspace.loadTree();
         }
-        $scope.createQueue = function (name, durable, filter) {
+        $scope.createQueue = function (queueName, routingType, durable, filter, maxConsumers, purgeWhenNoConsumers) {
             var mbean = getBrokerMBean(jolokia);
             if (mbean) {
                 var selection = workspace.selection;
@@ -51,10 +65,16 @@ var ARTEMIS = (function(ARTEMIS) {
                 {
                     address = address.substr(1,address.length -2);
                 }
-                $scope.message = "Created queue " + name + " durable=" + durable + " filter=" + filter + " on address " + address;
-                ARTEMIS.log.info($scope.message);
-                ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, name, durable, filter, onSuccess(operationSuccess));
-                ARTEMIS.log.info("executed");
+                $scope.message = "Created queue " + queueName + " durable=" + durable + " filter=" + filter + " on address " + address;
+                if (routingType == 0) {
+                    ARTEMIS.log.info($scope.message);
+                    ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, "MULTICAST", queueName, durable, filter, maxConsumers, purgeWhenNoConsumers, onSuccess(operationSuccess));
+                    ARTEMIS.log.info("executed");
+                } else {
+                   ARTEMIS.log.info($scope.message);
+                   ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, "ANYCAST", queueName, durable, filter, maxConsumers, purgeWhenNoConsumers, onSuccess(operationSuccess));
+                   ARTEMIS.log.info("executed");
+                }
             }
         };
         $scope.deleteDestination = function (isQueue) {
