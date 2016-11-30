@@ -22,16 +22,16 @@ function ArtemisConsole() {
       return jolokia.request(req1, {method: "post"});
    };
 
-   this.createAddress = function (mbean, jolokia, name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers, method) {
-      jolokia.execute(mbean, "createAddress(java.lang.String,int,boolean,int)", name, routingType, defaultDeleteOnNoConsumers, defaultMaxConsumers, method);
+   this.createAddress = function (mbean, jolokia, name, routingType,  method) {
+      jolokia.execute(mbean, "createAddress(java.lang.String,java.lang.String)", name, routingType,  method);
    };
 
    this.deleteAddress = function (mbean, jolokia, name, method) {
       jolokia.execute(mbean, "deleteAddress(java.lang.String)", name,  method);
    };
 
-   this.createQueue = function (mbean, jolokia, address, name, durable, filter, method) {
-      jolokia.execute(mbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,boolean)", address, name, filter, durable, method);
+   this.createQueue = function (mbean, jolokia, address, routingType, name, durable, filter, maxConsumers, purgeWhenNoConsumers, method) {
+      jolokia.execute(mbean, "createQueue(java.lang.String,java.lang.String,java.lang.String,java.lang.String,boolean,int,boolean,boolean)", address, routingType, name, filter, durable, maxConsumers, purgeWhenNoConsumers, true, method);
    };
 
    this.deleteQueue = function (mbean, jolokia, name, method) {
