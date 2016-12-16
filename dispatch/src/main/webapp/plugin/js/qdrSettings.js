@@ -19,7 +19,7 @@ under the License.
 /**
  * @module QDR
  */
-var QDR = (function (QDR) {
+var QDR = (function(QDR) {
 
   /**
    * @method SettingsController
@@ -36,7 +36,13 @@ var QDR = (function (QDR) {
     $scope.connectionErrorText = undefined;
     $scope.forms = {};
 
-    $scope.formEntity = angular.fromJson(localStorage[QDR.SETTINGS_KEY]) || {address: '', port: '', username: '', password: '', autostart: false};
+    $scope.formEntity = angular.fromJson(localStorage[QDR.SETTINGS_KEY]) || {
+      address: '',
+      port: '',
+      username: '',
+      password: '',
+      autostart: false
+    };
 
     $scope.$watch('formEntity', function(newValue, oldValue) {
       if (newValue !== oldValue) {
@@ -53,99 +59,121 @@ var QDR = (function (QDR) {
     };
 
     $scope.connect = function() {
-		if (QDRService.connected) {
-			QDRService.disconnect();
-		return;
-		}
-
-		if ($scope.settings.$valid) {
-			$scope.connectionError = false;
-			$scope.connecting = true;
-			$timeout( doConnect )   // timeout so connecting animation can display
-		}
-	}
-
-	var doConnect = function () {
-        if (!$scope.formEntity.address)
-            $scope.formEntity.address = "localhost"
-
-        console.log("attempting to connect to " + $scope.formEntity.address + ':' + $scope.formEntity.port);
-	    QDRService.addDisconnectAction(function () {
-			$timeout( function () {
-				QDR.log.debug("disconnect action called");
-                $scope.connecting = false;
-                $scope.connectionErrorText = QDRService.errorText;
-                $scope.connectionError = true;
-        	})
-	    });
-        QDRService.addConnectAction(function() {
-          //QDR.log.debug("got connection notification");
-			$timeout( function () {
-				$scope.connecting = false;
-			})
-        });
-        QDRService.connect($scope.formEntity);
+      if (QDRService.connected) {
+        QDRService.disconnect();
+        return;
       }
 
+      if ($scope.settings.$valid) {
+        $scope.connectionError = false;
+        $scope.connecting = true;
+        $timeout(doConnect) // timeout so connecting animation can display
+      }
+    }
+
+    var doConnect = function(opts) {
+      if (!$scope.formEntity.address)
+        $scope.formEntity.address = "localhost"
+
+      QDRService.addConnectAction(function() {
+        QDRService.addDisconnectAction(function() {
+          $timeout(function() {
+            QDR.log.debug("disconnect action called");
+            $scope.connecting = false;
+            $scope.connectionErrorText = QDRService.errorText;
+            $scope.connectionError = true;
+          })
+        });
+        QDRService.getSchema(function () {
+          QDR.log.debug("got schema after connection")
+          QDRService.addUpdatedAction("initialized", function () {
+            QDRService.delUpdatedAction("initialized")
+            QDR.log.debug("got initial topology")
+            $timeout(function() {
+              $scope.connecting = false;
+              if ($location.path().startsWith(QDR.pluginRoot)) {
+                  var searchObject = $location.search();
+                  var goto = "overview";
+                  if (searchObject.org && searchObject.org !== "connect") {
+                    goto = searchObject.org;
+                  }
+                  $location.search('org', null)
+                  $location.path(QDR.pluginRoot + "/" + goto);
+              }
+            })
+          })
+          QDR.log.debug("requesting a topology")
+          QDRService.setUpdateEntities([])
+          QDRService.topology.get()
+        })
+      });
+      var options = {address: $scope.formEntity.address, port: $scope.formEntity.port}
+      // if we have already successfully connected (the test connections succeeded)
+      if (opts && opts.connection) {
+        options.connection = opts.connection
+        options.context = opts.context
+      }
+      QDRService.connect(options);
+    }
   }]);
 
 
-QDR.module.directive('posint', function (){
-   return {
-	require: 'ngModel',
+  QDR.module.directive('posint', function() {
+    return {
+      require: 'ngModel',
 
-	link: function(scope, elem, attr, ctrl) {
-		// input type number allows + and - but we don't want them so filter them out
-		elem.bind('keypress', function (event) {
-			var nkey = !event.charCode ? event.which : event.charCode;
-			var skey = String.fromCharCode(nkey);
-			var nono = "-+.,"
-			if (nono.indexOf(skey) >= 0) {
-				event.preventDefault();
-				return false;
-			}
-			// firefox doesn't filter out non-numeric input. it just sets the ctrl to invalid
-			if (/[\!\@\#\$\%^&*\(\)]/.test(skey) && event.shiftKey || // prevent shift numbers
-				!(                                      // prevent all but the following
-					nkey <= 0 ||                            // arrows
-					nkey == 8 ||                            // delete|backspace
-					nkey == 13 ||                           // enter
-					(nkey >= 37 && nkey <=40) ||            // arrows
-					event.ctrlKey || event.altKey ||        // ctrl-v, etc.
-					/[0-9]/.test(skey))                     // numbers
-				) {
-					event.preventDefault();
-					return false;
-			}
-		})
-		// check the current value of input
-		var _isPortInvalid = function (value) {
-			var port = value + ''
-			var isErrRange = false;
-			// empty string is valid
-			if (port.length !== 0) {
-				var n = ~~Number(port);
-				if (n < 1 || n > 65535) {
-					isErrRange = true;
-				}
-			}
-			ctrl.$setValidity('range', !isErrRange)
-			return isErrRange;
-		}
+      link: function(scope, elem, attr, ctrl) {
+        // input type number allows + and - but we don't want them so filter them out
+        elem.bind('keypress', function(event) {
+          var nkey = !event.charCode ? event.which : event.charCode;
+          var skey = String.fromCharCode(nkey);
+          var nono = "-+.,"
+          if (nono.indexOf(skey) >= 0) {
+            event.preventDefault();
+            return false;
+          }
+          // firefox doesn't filter out non-numeric input. it just sets the ctrl to invalid
+          if (/[\!\@\#\$\%^&*\(\)]/.test(skey) && event.shiftKey || // prevent shift numbers
+            !( // prevent all but the following
+              nkey <= 0 || // arrows
+              nkey == 8 || // delete|backspace
+              nkey == 13 || // enter
+              (nkey >= 37 && nkey <= 40) || // arrows
+              event.ctrlKey || event.altKey || // ctrl-v, etc.
+              /[0-9]/.test(skey)) // numbers
+          ) {
+            event.preventDefault();
+            return false;
+          }
+        })
+          // check the current value of input
+        var _isPortInvalid = function(value) {
+          var port = value + ''
+          var isErrRange = false;
+          // empty string is valid
+          if (port.length !== 0) {
+            var n = ~~Number(port);
+            if (n < 1 || n > 65535) {
+              isErrRange = true;
+            }
+          }
+          ctrl.$setValidity('range', !isErrRange)
+          return isErrRange;
+        }
 
-		//For DOM -> model validation
-		ctrl.$parsers.unshift(function(value) {
-			return _isPortInvalid(value) ? undefined : value;
-		});
+        //For DOM -> model validation
+        ctrl.$parsers.unshift(function(value) {
+          return _isPortInvalid(value) ? undefined : value;
+        });
 
-		//For model -> DOM validation
-		ctrl.$formatters.unshift(function(value) {
-			_isPortInvalid(value);
-			return value;
-		});
+        //For model -> DOM validation
+        ctrl.$formatters.unshift(function(value) {
+          _isPortInvalid(value);
+          return value;
+        });
       }
-   };
-});
+    };
+  });
 
   return QDR;
 }(QDR || {}));

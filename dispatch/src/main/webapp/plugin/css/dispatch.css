@@ -31,8 +31,12 @@ svg:not(.active):not(.ctrl) {
   cursor: crosshair;
 }
 #end-arrow-selected, #start-arrow-selected {
-	stroke: #00F;
-	fill: #00F;
+	stroke: #33F;
+	fill: #33F;
+}
+path.link.selected {
+  stroke-dasharray: 10,2;
+  stroke: #33F  !important;
 }
 
 path.link {
@@ -46,23 +50,27 @@ svg:not(.active):not(.ctrl) path.link {
   cursor: pointer;
 }
 
-path.link.selected {
-  stroke-dasharray: 10,2;
-  stroke: #00F  !important;
-}
-
-
-path.link.highlighted {
-    stroke: #0F0 !important;
-
-}
-
 path.link.temp {
   opacity: 0.3;
 }
 path.link.temp.over {
   opacity: 0.8;
   stroke-dasharray: 10,2;
+}
+path.link.small {
+  stroke-width: 2.5;
+  stroke: darkgray;
+}
+path.link.highlighted {
+    stroke: #6F6 !important;
+}
+marker#start-arrow-highlighted,
+marker#end-arrow-highlighted {
+    fill: #6F6;
+}
+marker#start-arrow-small,
+marker#end-arrow-small {
+    fill: darkgray;
 }
 
 path.link.dragline {
@@ -73,28 +81,32 @@ path.link.hidden {
   stroke-width: 0;
 }
 
-
 circle.node {
-    stroke-width: 1.5px;
-    cursor: pointer;
-    stroke: darkgray;
-    fill: lightgray;
+  stroke-width: 1.5px;
+  cursor: pointer;
+  stroke: darkgray;
 }
 
 circle.node.reflexive {
-    stroke: #F00 !important;
-    stroke-width: 2.5px;
+  stroke: #F00 !important;
+  stroke-width: 2.5px;
 }
 circle.node.selected {
-    stroke: #F00 !important;
-    stroke-width: 2px;
-    fill: #e0e0ff !important;
+  stroke: #6F6 !important;
+  stroke-width: 2px;
+  fill: #e0e0ff !important;
+}
+circle.node.highlighted {
+  stroke: #6F6;
 }
 circle.node.inter-router {
     fill: #EAEAEA;
 }
-circle.node.normal {
+circle.node.normal.in {
     fill: #F0F000;
+}
+circle.node.normal.out {
+    fill: #C0F0C0;
 }
 circle.node.on-demand {
     fill: #C0FFC0;
@@ -205,10 +217,12 @@ div.grid-values.ngCellText span {
 }
 
 #topologyForm.selected {
-  border: 1px solid red;
+  border: 1px solid blue;
 }
 #topologyForm {
-    border: 1px solid white;
+  border-right: 1px solid lightgray;
+  border-bottom: 1px solid lightgray;
+    /*border: 1px solid white;*/
     padding: 2px;
     /* position: relative; */
     /* top: -8px; */
@@ -639,6 +653,8 @@ div.topoGrid .ui-grid-viewport {
 
 @-moz-document url-prefix() {
     .btn {padding: 2px 12px 8px !important;}
+    #overview-controller .btn {padding: 4px 12px !important;}
+    #overview-controller .btn.filter-close {padding: 0 !important;}
 }
 
 .ui-fancytree.fancytree-container {
@@ -669,4 +685,21 @@ div.topoGrid .ui-grid-viewport {
 
 .pane-viewport {
 	top: 24px !important;
+}
+.dynatree-node.loading {
+  position: initial;
+}
+
+.hideLeft {
+  position: absolute;
+  right: 0.5em;
+  top: 1em;
+  border: 0;
+}
+
+.showLeft {
+  position: absolute;
+  top: 1em;
+  left: 0.5em;
+  border: 0;
 }

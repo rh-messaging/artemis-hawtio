@@ -262,8 +262,9 @@ div.chartContainer div.aChart {
 }
 
 #list-controller select {
-	height: auto;
-	float: left;
+  height: 25px;
+  float: left;
+  padding: 0;
 }
 
 
@@ -294,6 +295,7 @@ div.qdr-overview.pane {
 }
 div.qdr-topology.pane.left {
 	width: auto;
+  /*border-right: 1px solid lightgray; */
 }
 
 /* the selected row in the name table */
@@ -449,6 +451,14 @@ ul.qdrTopoModes {
 .overview .ngRow:hover {
 	background:#e0e0ff;
 }
+
+.overview-cell .ngCell:hover {
+	background:#e0e0ff;
+}
+.overview-cell .ngCell.col0:hover, .overview-cell .ngCell.col1:hover {
+	background: initial;
+}
+
 
 .qdr-overview.pane.left, .qdr-attributes.pane.left {
 	top: 104px;
@@ -919,4 +929,8 @@ div#durationSlider, div#rateSlider {
 
 div#list-controller {
     padding-left: 300px;
+}
+
+.listening-on {
+    background-color: #CCFFCC;
 }
