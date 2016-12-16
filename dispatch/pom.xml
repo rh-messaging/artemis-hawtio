@@ -18,13 +18,13 @@
   <parent>
     <groupId>org.jboss.rh-messaging</groupId>
     <artifactId>messaging-hawtio-plugins</artifactId>
-    <version>1.0.0.ER5</version>
+    <version>1.0.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.jboss.rh-messaging</groupId>
   <artifactId>dispatch-hawtio-console</artifactId>
-  <version>1.0.0.ER5</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>war</packaging>
 
   <description>
