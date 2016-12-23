@@ -50,30 +50,35 @@ When on the Artemis tab on the left you will see a sanitized version of the Arte
 the extra functionality that the Artemis HawtIO plugin gives you as well as the the usual JMX attributes and Operations.
 To view the full JMX tree simple click on the JMX tab.
 
-##Creating a Queue
+##Creating an Address
 
-To Create a new JMS Queue simply click on the `Queue` folder in the JMX tree and on the `create` tab, enter the name of
-the queue you want to create and then click on `Create queue`` like so:
+To Create a new Address simply click on the `Address` folder in the JMX tree and on the `create` tab, enter the name of
+the address you want to create, choose the default routing types and then click on `Create Address`` like so:
+
+![Create Address Tab](images/createAddress.jpg)
+
+Alternatively if the `Address` folder isn't showing click on the `Broker` folder in the JMX tree and on the `create` tab, 
+choose the `create` tab.
+
+##Creating a queue
+
+To create a new Queue choose the address in the jmx tree of the address you want to associate the queue with and click 
+`create`, you will see the following screen
 
 ![Create Queue Tab](images/createQueue.jpg)
-
-Alternatively if the `Queue` folder isn't showing click on the `Server` folder in the JMX tree and on the `create` tab, 
-choose the `queue` option and click on `Create queue`` like so:
-
-![Create Queue2 Tab](images/createQueue2.jpg)
-
-##Creating a topic
-
-Creating a topic is exactly the same as Creating a Queueexcept you either click on the `topic` folder in the JMX tree or
- choose the `topic` option when using the server option.
  
 ##Sending a message to a Queue
 
 Sometimes it is desirable to test an installation by sending a test message or to simply just send a message. To do this 
 choose the Queue from the JMX tab that you want to send the message to and click on the `send` tab. Fill in the message
- content and any headers and click on the 1Send Message` button, like so:
+ content and any headers and click on the Send Message` button, like so:
  
 ![Send Message Tab](images/sendMessage.jpg) 
+
+> **Note**
+>
+> It is also possible to send a message to an address which will mean all applicable queues on that address receive the message
+ 
 
 ##Browsing a Queue for messages
 
@@ -93,6 +98,12 @@ It is also possible to look at the message content by clicking on the message ID
 then see something like:
 
 ![Browse Message Details Tab](images/browseMessageDetails.jpg)
+
+
+> **Note**
+>
+> Currently the body of the message cannot be inspected
+ 
 
 This screen will allow you to iterate over the browsed messages using the casette buttons and also move or delete the messages.
 
@@ -143,19 +154,11 @@ you want to appear. these include:
     </tr>
     <tr>
         <td>`Queues`</td>
-        <td>All the Queues that have consumers connected</td>
-    </tr>
-    <tr>
-        <td>`Topics`</td>
-        <td>All the Topics that have consumers connected</td>
-    </tr>
-    <tr>
-        <td>`All Queues`</td>
         <td>All the Queues</td>
     </tr>
     <tr>
-        <td>`Topics`</td>
-        <td>All the Topics</td>
+        <td>`Addresses`</td>
+        <td>All the addresses</td>
     </tr>
     <tr>
         <td>`Brokers`</td>
