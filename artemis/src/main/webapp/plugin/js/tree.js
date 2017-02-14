@@ -36,37 +36,6 @@ var ARTEMIS;
                 if (folder) {
                     children = folder.children;
                 }
-                if (children.length) {
-                    var firstChild = children[0];
-
-                    ARTEMIS.log.info("firstChild="+firstChild)
-                    // the children could be AMQ 5.7 style broker name folder with the actual MBean in the children
-                    // along with folders for the Queues etc...
-                    if (!firstChild.typeName && firstChild.children.length < 4) {
-                        // lets avoid the top level folder
-                        var answer = [];
-                        angular.forEach(children, function (child) {
-                            answer = answer.concat(child.children);
-                            ARTEMIS.log.info("answer="+answer);
-                        });
-                        children = answer;
-                    }
-                }
-
-                // how to update the tree names
- /*              children.forEach(function (broker) {
-                   var grandChildren = broker.children;
-                   if (grandChildren) {
-                       Tree.sanitize(grandChildren);
-                       var idx = grandChildren.findIndex(function (n) { return n.title === "Address"; });
-
-                       ARTEMIS.log.info("idx="+idx);
-                       if (idx > 0) {
-                           grandChildren[idx].title = "Addresses"
-
-                       }
-                   }
-               });*/
                 var treeElement = $("#artemistree");
                 Jmx.enableTree($scope, $location, workspace, treeElement, children, true);
                 // lets do this asynchronously to avoid Error: $digest already in progress
@@ -89,4 +58,3 @@ var ARTEMIS;
         }
     }]);
 })(ARTEMIS || (ARTEMIS = {}));
-//# sourceMappingURL=tree.js.map

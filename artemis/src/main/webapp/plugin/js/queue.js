@@ -60,7 +60,7 @@ var ARTEMIS = (function(ARTEMIS) {
             if (mbean) {
                 var selection = workspace.selection;
                 var entries = selection.entries;
-                var address = entries["name"];
+                var address = entries["address"];
                 if (address.charAt(0) === '"' && address.charAt(address.length -1) === '"')
                 {
                     address = address.substr(1,address.length -2);
@@ -126,7 +126,7 @@ var ARTEMIS = (function(ARTEMIS) {
             var mbean = null;
             var selection = workspace.selection;
             var folderNames = selection.folderNames;
-            mbean = "" + folderNames[0] + ":type=Broker" + ",brokerName=" + folderNames[2] + ",serviceType=Broker";
+            mbean = "" + folderNames[0] + ":broker=" + folderNames[1];
             ARTEMIS.log.info("broker=" + mbean);
             return mbean;
         }

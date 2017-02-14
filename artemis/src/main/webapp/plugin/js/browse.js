@@ -4,7 +4,6 @@
 var ARTEMIS = (function(ARTEMIS) {
 
     ARTEMIS.BrowseQueueController = function ($scope, workspace, ARTEMISService, jolokia, localStorage, artemisMessage, $location, $timeout) {
-       ARTEMIS.log.info("qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
        $scope.searchText = '';
        $scope.allMessages = [];
        $scope.messages = [];
@@ -75,7 +74,7 @@ var ARTEMIS = (function(ARTEMIS) {
           afterSelectionChange: afterSelectionChange
        };
        $scope.showMessageDetails = false;
-       var ignoreColumns = ["PropertiesText", "BodyPreview", "Text"];
+       var ignoreColumns = ["PropertiesText", "BodyPreview", "text"];
        var flattenColumns = ["BooleanProperties", "ByteProperties", "ShortProperties", "IntProperties", "LongProperties", "FloatProperties", "DoubleProperties", "StringProperties"];
        $scope.$watch('workspace.selection', function () {
           if (workspace.moveIfViewInvalid()) {
@@ -172,6 +171,7 @@ var ARTEMIS = (function(ARTEMIS) {
        };
        function populateTable(response) {
           var data = response.value;
+          ARTEMIS.log.info("loading data:" + data);
 
           if (!angular.isArray(data)) {
              $scope.allMessages = [];
@@ -186,8 +186,8 @@ var ARTEMIS = (function(ARTEMIS) {
              message.headerHtml = createHeaderHtml(message);
              message.bodyText = createBodyText(message);
           });
-          Core.$apply($scope);
           filterMessages($scope.gridOptions.filterOptions.filterText);
+          Core.$apply($scope);
        }
 
        /*
@@ -195,8 +195,10 @@ var ARTEMIS = (function(ARTEMIS) {
         * just create the HTML in code :)
         */
        function createBodyText(message) {
-          if (message.Text) {
-             var body = message.Text;
+
+          ARTEMIS.log.info("loading message:" + message);
+          if (message.text) {
+             var body = message.text;
              var lenTxt = "" + body.length;
              message.textMode = "text (" + lenTxt + " chars)";
              return body;

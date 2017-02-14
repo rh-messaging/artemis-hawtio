@@ -152,7 +152,7 @@ var ARTEMIS = (function(ARTEMIS) {
 
       workspace.subLevelTabs.push({
          content: '<i class="icon-plus"></i> Delete',
-         title: "Create a new address",
+         title: "Delete an address",
          isValid: function (workspace) {
             return isAddress(workspace, artemisJmxDomain);
          },
@@ -207,23 +207,19 @@ var ARTEMIS = (function(ARTEMIS) {
 
 
    function isBroker(workspace, domain) {
-      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Broker'}, 3);
+      return workspace.hasDomainAndProperties(domain, {'broker': 'Broker'}, 3);
    }
 
    function isAddressFolder(workspace, domain) {
-      return workspace.selectionHasDomainAndLastFolderName(domain, 'Address');
+      return workspace.selectionHasDomainAndLastFolderName(domain, 'addresses');
    }
-
+                                                                                          
    function isAddress(workspace, domain) {
-      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Address'});
-   }
-
-   function isQueuesFolder(workspace, domain) {
-      return workspace.selectionHasDomainAndLastFolderName(domain, 'Queue');
+      return workspace.hasDomainAndProperties(domain, {'component': 'addresses'}) && !workspace.hasDomainAndProperties(domain, {'subcomponent': 'queues'});
    }
 
    function isQueue(workspace, domain) {
-      return workspace.hasDomainAndProperties(domain, {'serviceType': 'Queue'});
+      return workspace.hasDomainAndProperties(domain, {'subcomponent': 'queues'});
    }
 
    return ARTEMIS;

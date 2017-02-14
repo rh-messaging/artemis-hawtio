@@ -93,7 +93,7 @@ var ARTEMIS = (function(ARTEMIS) {
             var mbean = null;
             var selection = workspace.selection;
             var folderNames = selection.folderNames;
-            mbean = "" + folderNames[0] + ":type=Broker" + ",brokerName=" + folderNames[2] + ",serviceType=Broker";
+            mbean = "" + folderNames[0] + ":broker=" + folderNames[1];
             ARTEMIS.log.info("broker=" + mbean);
             return mbean;
         }
