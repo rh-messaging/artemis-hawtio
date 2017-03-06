@@ -3,14 +3,14 @@
   <parent>
     <groupId>org.jboss.rh-messaging</groupId>
     <artifactId>messaging-hawtio-plugins</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0.ER8</version>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.jboss.rh-messaging</groupId>
   <artifactId>artemis-plugin</artifactId>
   <name>Artemis Plugin</name>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0.ER8</version>
   <description>hawtio :: hawtio Simple plugin example</description>
 
   <!-- hawtio plugins are almost always war files -->
