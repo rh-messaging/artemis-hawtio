@@ -284,7 +284,7 @@ var ARTEMIS = (function(ARTEMIS) {
             containerId: container
          };
          var brokers = [];
-         jolokia.search(artemisJmxDomain + ":type=Broker,brokerName=*,serviceType=Broker", onSuccess(function (response) {
+         jolokia.search(artemisJmxDomain + ":broker=*", onSuccess(function (response) {
             angular.forEach(response, function (objectName) {
                var atts = ARTEMISService.artemisConsole.getServerAttributes(jolokia, objectName);
                var val = atts.value;
@@ -294,7 +294,7 @@ var ARTEMIS = (function(ARTEMIS) {
                   ARTEMIS.log.info("Got broker: " + objectName + " on container: " + containerId + " properties: " + angular.toJson(properties, true));
                   if (properties) {
                      var master = true;
-                     var brokerId = properties["brokerName"] || "unknown";
+                     var brokerId = properties["broker"] || "unknown";
                      var nodeId = val["NodeID"];
                      var theBroker = {
                         brokerId: brokerId,
@@ -341,18 +341,19 @@ var ARTEMIS = (function(ARTEMIS) {
       function onContainerJolokia(containerJolokia, container, id, brokers) {
          function createQueues(brokers) {
             if ($scope.viewSettings.queue) {
-               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Queue", onSuccess(function (response) {
+               containerJolokia.search(artemisJmxDomain + ":*,subcomponent=queues", onSuccess(function (response) {
                   angular.forEach(response, function (objectName) {
                      var details = Core.parseMBean(objectName);
                      if (details) {
                         var properties = details['attributes'];
                         if (properties) {
                            configureDestinationProperties(properties);
-                           var brokerName = properties.brokerName;
-                           var addressName = properties.parentName;
-                           var typeName = properties.serviceType;
-                           var queueName = properties.name;
-                           var destination = getOrAddQueue(properties, typeName, queueName, addressName, brokerName);
+                           var brokerName = properties.broker;
+                           var addressName = properties.address;
+                           var typeName = "queue";
+                           var queueName = properties.queue;
+                           var routingType = properties["routing-type"];
+                           var destination = getOrAddQueue(properties, typeName, routingType, queueName, addressName, brokerName);
                         }
                      }
                   });
@@ -366,16 +367,15 @@ var ARTEMIS = (function(ARTEMIS) {
 
          function createAddresses(brokers) {
             if ($scope.viewSettings.address) {
-               containerJolokia.search(artemisJmxDomain + ":type=Broker,*,serviceType=Address", onSuccess(function (response) {
+               containerJolokia.search(artemisJmxDomain + ":*,component=addresses", onSuccess(function (response) {
                   angular.forEach(response, function (objectName) {
                      var details = Core.parseMBean(objectName);
                      if (details) {
                         var properties = details['attributes'];
                         if (properties) {
-                           //configureDestinationProperties(properties);
-                           var brokerName = properties.brokerName;
-                           var typeName = properties.serviceType;
-                           var addressName = properties.name;
+                           var brokerName = properties.broker;
+                           var typeName = "address";
+                           var addressName = properties.address;
                            var destination = getOrAddAddress(properties, typeName, addressName, brokerName);
                         }
                      }
@@ -390,13 +390,12 @@ var ARTEMIS = (function(ARTEMIS) {
 
          function createConsumersAndNetwork(brokers) {
             angular.forEach(brokers, function (broker) {
-               mBean = artemisJmxDomain + ":type=Broker,brokerName=" + broker.brokerId + ",serviceType=Broker";
+               mBean = artemisJmxDomain + ":broker=" + broker.brokerId;
                // find consumers
                if ($scope.viewSettings.consumer) {
                   ARTEMISService.artemisConsole.getConsumers(mBean, containerJolokia, onSuccess(function (properties) {
                      consumers = properties.value;
                      ARTEMIS.log.info(consumers);
-                     //\"durable\":false,\"queueName\":\"jms.queue.TEST\",\"creationTime\":1453725131250,\"consumerID\":0,\"browseOnly\":false,\"destinationName\":\"TEST\",\"connectionID\":\"1002661336\",\"destinationType\":\"queue\",\"sessionID\":\"a7fb1e89-c35f-11e5-b064-54ee7531eccb\"
                      angular.forEach(angular.fromJson(consumers), function (consumer) {
                         if (consumer) {
 
@@ -462,11 +461,12 @@ var ARTEMIS = (function(ARTEMIS) {
 
          if (containerJolokia) {
             container.jolokia = containerJolokia;
-            function getOrAddQueue(properties, typeName, queueName, addressName, brokerName) {
+            function getOrAddQueue(properties, typeName, routingType, queueName, addressName, brokerName) {
                var queue = getOrAddNode(typeName.toLowerCase(), queueName, properties, function () {
                   var objectName = "";
                   if (addressName) {
-                     objectName = artemisJmxDomain + ":type=Broker,brokerName=" + brokerName + ",parentType=Address,parentName=" + addressName + ",serviceType=Queue,name=" + queueName;
+                     objectName = artemisJmxDomain + ":broker=" + brokerName + ",component=addresses,address=" + addressName + ",subcomponent=queues,routing-type=" + routingType + ",queue=" + queueName;
+                     
                   }
                   ARTEMIS.log.info(objectName);
                   var answer = {
@@ -480,7 +480,7 @@ var ARTEMIS = (function(ARTEMIS) {
                      }
                   };
                   if (!addressName) {
-                     containerJolokia.search(artemisJmxDomain + ":serviceType=Queue,name=" + queueName + ",*", onSuccess(function (response) {
+                     containerJolokia.search(artemisJmxDomain + ":broker=" + brokerName + ",component=addresses,address=" + addressName + ",subcomponent=queues,routing-type=" + routingType + ",queue=" + queueName + ",*", onSuccess(function (response) {
                         if (response && response.length) {
                            answer.objectName = response[0];
                         }
@@ -498,7 +498,7 @@ var ARTEMIS = (function(ARTEMIS) {
                var destination = getOrAddNode(typeName.toLowerCase(), destinationName, properties, function () {
                   var objectName = "";
                   if (brokerName) {
-                     objectName = artemisJmxDomain + ":type=Broker,brokerName=" + brokerName + ",serviceType=" + typeName + ",name=" + destinationName;
+                     objectName = artemisJmxDomain + ":broker=" + brokerName + ",component=addresses,address=" + destinationName;
                   }
                   var answer = {
                      typeLabel: typeName,
@@ -511,7 +511,7 @@ var ARTEMIS = (function(ARTEMIS) {
                      }
                   };
                   if (!brokerName) {
-                     containerJolokia.search(artemisJmxDomain + ":destinationType=" + typeName + ",destinationName=" + destinationName + ",*", onSuccess(function (response) {
+                     containerJolokia.search(artemisJmxDomain + ":broker=" + brokerName + ",component=addresses,address=" + destinationName + ",*", onSuccess(function (response) {
                         if (response && response.length) {
                            answer.objectName = response[0];
                         }
@@ -550,7 +550,7 @@ var ARTEMIS = (function(ARTEMIS) {
             });
             if (!broker['objectName']) {
                // lets try guess the mbean name
-               broker['objectName'] = artemisJmxDomain + ":type=Broker,brokerName=" + brokerId + ",serviceType=Broker";
+               broker['objectName'] = artemisJmxDomain + ":broker=" + brokerId;
                ARTEMIS.log.debug("Guessed broker mbean: " + broker['objectName']);
             }
             if (!broker['brokerContainer'] && container) {
