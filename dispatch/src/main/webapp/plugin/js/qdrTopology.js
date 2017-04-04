@@ -21,8 +21,9 @@ under the License.
  */
 var QDR = (function(QDR) {
 
-  QDR.module.controller('QDR.TopologyFormController', function($scope, QDRService) {
+  QDR.module.controller('QDR.TopologyFormController', function($scope, $rootScope, $timeout, QDRService) {
 
+    $scope.panelVisible = true  // show/hide the panel on the left
     $scope.attributes = []
     var nameTemplate = '<div title="{{row.entity.description}}" class="ngCellText {{row.entity.cls}}"><span>{{row.entity.attributeName}}</span></div>';
     var valueTemplate = '<div title="{{row.entity.attributeValue}}" class="ngCellText {{row.entity.cls}}"><span>{{row.entity.attributeValue}}</span></div>';
@@ -40,18 +41,18 @@ var QDR = (function(QDR) {
         cellTemplate: valueTemplate
       }]
     };
-    $scope.form = ''
+    $scope.form = 'router'
     $scope.$on('showEntityForm', function(event, args) {
       var attributes = args.attributes;
       var entityTypes = QDRService.schema.entityTypes[args.entity].attributes;
       attributes.forEach(function(attr) {
         attr.cls = ''
-QDR.log.debug("attr.description " + attr.description)
         if (attr.attributeName === 'Listening on')
           attr.cls = 'listening-on'
         if (entityTypes[attr.attributeName] && entityTypes[attr.attributeName].description) {
           attr.description = entityTypes[attr.attributeName].description
         }
+        //QDR.log.debug("attr.description " + attr.description)
       })
       $scope.attributes = attributes;
       $scope.form = args.entity;
@@ -59,6 +60,41 @@ QDR.log.debug("attr.description " + attr.description)
     $scope.$on('showAddForm', function(event) {
       $scope.form = 'add';
     })
+
+    $scope.hideLeftPane = function () {
+      d3.select(".qdr-topology-form")
+        .transition().duration(300).ease("sin-in")
+        .style("left" , "-309px")
+        .each("end", function () {
+          $timeout(function () {
+            QDR.log.debug("done with transition. setting scope ");
+            $scope.panelVisible = false
+            $rootScope.$broadcast('panel-resized')
+        })
+/*
+      d3.select(".qdr-topology-svg")
+        .transition().duration(300).ease("sin-in")
+        .style("margin-left", "30px")
+        .each("end", function () {
+          resize()
+          $timeout(function () {QDR.log.debug("done with transition. setting scope ");$scope.panelVisible = false})
+        })
+*/
+    })}
+
+    $scope.showLeftPane = function () {
+      d3.select(".qdr-topology-form")
+        .transition().duration(300).ease("sin-out")
+        .style("left" , "0px")
+
+      d3.select(".qdr-topology-svg")
+        .transition().duration(300).ease("sin-out")
+        .style("margin-left", "430px")
+        .each("end", function () {
+          resize()
+          $timeout(function () {QDR.log.debug("done with transition. setting scope ");$scope.panelVisible = true})
+        })
+    }
   })
 
   /**
@@ -66,41 +102,14 @@ QDR.log.debug("attr.description " + attr.description)
    *
    * Controller that handles the QDR topology page
    */
-  QDR.module.controller("QDR.TopologyController", ['$scope', '$rootScope', 'QDRService', '$location', '$timeout', '$dialog',
-    function($scope, $rootScope, QDRService, $location, $timeout, $dialog) {
+  QDR.module.controller("QDR.TopologyController", ['$scope', '$rootScope', 'QDRService', '$location', '$timeout', '$uibModal',
+    function($scope, $rootScope, QDRService, $location, $timeout, $uibModal) {
 
-      $scope.panelVisible = true  // show/hide the panel on the left
       $scope.multiData = []
       $scope.selectedClient = [];
       $scope.quiesceState = {}
       var dontHide = false;
 
-      $scope.hideLeftPane = function () {
-        d3.select(".qdr-topology.pane.left")
-          .transition().duration(300).ease("sin-in")
-          .style("left" , "-380px")
-
-        d3.select(".panel-adjacent")
-          .transition().duration(300).ease("sin-in")
-          .style("margin-left", "30px")
-          .each("end", function () {
-            resize()
-            $timeout(function () {QDR.log.debug("done with transition. setting scope ");$scope.panelVisible = false})
-          })
-      }
-      $scope.showLeftPane = function () {
-        d3.select(".qdr-topology.pane.left")
-          .transition().duration(300).ease("sin-out")
-          .style("left" , "0px")
-
-        d3.select(".panel-adjacent")
-          .transition().duration(300).ease("sin-out")
-          .style("margin-left", "430px")
-          .each("end", function () {
-            resize()
-            $timeout(function () {QDR.log.debug("done with transition. setting scope ");$scope.panelVisible = true})
-          })
-      }
       $scope.quiesceConnection = function(row) {
         var entity = row.entity;
         var state = $scope.quiesceState[entity.connectionId].state;
@@ -335,7 +344,6 @@ QDR.log.debug("attr.description " + attr.description)
       ];
       $scope.mode = "Diagram";
       $scope.contextNode = null; // node that is associated with the current context menu
-
       $scope.isModeActive = function(name) {
         if ((name == 'Add Router' || name == 'Diagram') && $scope.addingNode.step > 0)
           return true;
@@ -507,7 +515,8 @@ QDR.log.debug("attr.description " + attr.description)
       var radii = {
         'inter-router': 25,
         'normal': 15,
-        'on-demand': 15
+        'on-demand': 15,
+        'route-container': 15,
       };
       var radius = 25;
       var radiusNormal = 15;
@@ -546,6 +555,10 @@ QDR.log.debug("attr.description " + attr.description)
           force.size(sizes).resume();
         }
       }
+
+      $scope.$on('panel-resized', function () {
+        resize()
+      })
       window.addEventListener('resize', resize);
       var sizes = getSizes()
       width = sizes[0]
@@ -687,7 +700,7 @@ QDR.log.debug("attr.description " + attr.description)
               if (target >= 0) {
                 getLink(source, target, dir, "", source + "-" + target);
               }
-            } else if (role == "normal" || role == "on-demand") {
+            } else if (role == "normal" || role == "on-demand" || role === "route-container") {
               // not a router, but an external client
               var name = QDRService.nameFromId(id) + "." + connection.identity;
 
@@ -989,7 +1002,7 @@ QDR.log.debug("attr.description " + attr.description)
                 });
               }
             }
-            $scope.$broadcast('showEntityForm', {
+            $rootScope.$broadcast('showEntityForm', {
               entity: entity,
               attributes: attributes
             })
@@ -1642,8 +1655,12 @@ QDR.log.debug("attr.description " + attr.description)
             clearPopups();
             if (!d.normals) {
               // circle was a router or a broker
-              if (QDRService.isArtemis(d) && Core.ConnectionName === 'Artemis') {
-                $location.path('/jmx/attributes?tab=artemis&con=Artemis')
+              if (QDRService.isArtemis(d)) {
+                var artemisPath = '/jmx/attributes?tab=artemis&con=Artemis'
+                if (QDR.isStandalone)
+                  window.location = $location.protocol() + '://localhost:8161/hawtio' + artemisPath
+                else
+                  $location.path(artemisPath)
               }
               return;
             }
@@ -1781,7 +1798,7 @@ QDR.log.debug("attr.description " + attr.description)
           }))
         }
         if (!svg.selectAll('circle.artemis').empty()) {
-          legendNodes.push(aNode("Artemis broker", "", "on-demand", undefined, 6, 0, 0, 0, false, {}))
+          legendNodes.push(aNode("Artemis broker", "", "route-container", undefined, 6, 0, 0, 0, false, {product: 'apache-activemq-artemis'}))
         }
         lsvg = lsvg.data(legendNodes, function(d) {
           return d.key;
@@ -2108,7 +2125,7 @@ QDR.log.debug("attr.description " + attr.description)
 
       function doAddDialog(NewRouterName) {
         QDRService.ensureAllEntities({entity: ".listener"}, function () {
-          var d = $dialog.dialog({
+          var d = $uibModal.open({
             dialogClass: "modal dlg-large",
             backdrop: true,
             keyboard: true,
@@ -2122,7 +2139,7 @@ QDR.log.debug("attr.description " + attr.description)
             }
           });
           $timeout(function () {
-            d.open().then(function(result) {
+            d.result.then(function(result) {
               if (result)
                 doDownloadDialog(result);
             });
@@ -2131,7 +2148,7 @@ QDR.log.debug("attr.description " + attr.description)
       };
 
       function doDownloadDialog(result) {
-        d = $dialog.dialog({
+        d = $uibModal.open({
           backdrop: true,
           keyboard: true,
           backdropClick: true,
@@ -2143,7 +2160,7 @@ QDR.log.debug("attr.description " + attr.description)
             }
           }
         });
-        d.open().then(function(result) {
+        d.result.then(function(result) {
           //QDR.log.debug("download dialog done")
         })
         if (!$scope.$$phase) $scope.$apply()
