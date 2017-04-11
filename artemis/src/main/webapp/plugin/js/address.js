@@ -68,8 +68,8 @@ var ARTEMIS = (function(ARTEMIS) {
             if (mbean) {
                 if (selection && jolokia && entries) {
                     var domain = selection.domain;
-                    var name = entries["name"];
-                    name = name.unescapeHTML();
+                    var name = entries["address"];
+                    name = name.replace(/['"]+/g, '');
                     if (name.charAt(0) === '"' && name.charAt(name.length -1) === '"')
                     {
                         name = name.substr(1,name.length -2);
