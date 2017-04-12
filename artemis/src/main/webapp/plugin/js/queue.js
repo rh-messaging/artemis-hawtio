@@ -47,6 +47,11 @@ var ARTEMIS = (function(ARTEMIS) {
             Core.notification("success", $scope.message);
             $scope.workspace.loadTree();
         }
+
+       function operationFailure(response) {
+          Core.defaultJolokiaErrorHandler(response);
+          Core.notification("warning", response['error']);
+       }
         function deleteSuccess() {
             // lets set the selection to the parent
             workspace.removeAndSelectParentNode();
@@ -68,11 +73,19 @@ var ARTEMIS = (function(ARTEMIS) {
                 $scope.message = "Created queue " + queueName + " durable=" + durable + " filter=" + filter + " on address " + address;
                 if (routingType == 0) {
                     ARTEMIS.log.info($scope.message);
-                    ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, "MULTICAST", queueName, durable, filter, maxConsumers, purgeWhenNoConsumers, onSuccess(operationSuccess));
+                    ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, "MULTICAST", queueName, durable, filter, maxConsumers, purgeWhenNoConsumers, onSuccess(operationSuccess, {
+                                                                                        error: function (response) {
+                                                                                           operationFailure(response);
+                                                                                        }
+                                                                                    }));
                     ARTEMIS.log.info("executed");
                 } else {
                    ARTEMIS.log.info($scope.message);
-                   ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, "ANYCAST", queueName, durable, filter, maxConsumers, purgeWhenNoConsumers, onSuccess(operationSuccess));
+                   ARTEMISService.artemisConsole.createQueue(mbean, jolokia, address, "ANYCAST", queueName, durable, filter, maxConsumers, purgeWhenNoConsumers, onSuccess(operationSuccess, {
+                                                                                       error: function (response) {
+                                                                                          operationFailure(response);
+                                                                                       }
+                                                                                   }));
                    ARTEMIS.log.info("executed");
                 }
             }
@@ -91,11 +104,19 @@ var ARTEMIS = (function(ARTEMIS) {
                     var operation;
                     if (isQueue) {
                         $scope.message = "Deleted queue " + name;
-                        ARTEMISService.artemisConsole.deleteQueue(mbean, jolokia, name, onSuccess(deleteSuccess));
+                        ARTEMISService.artemisConsole.deleteQueue(mbean, jolokia, name, onSuccess(deleteSuccess, {
+                                                                                            error: function (response) {
+                                                                                               operationFailure(response);
+                                                                                            }
+                                                                                        }));
                     }
                     else {
                         $scope.message = "Deleted topic " + name;
-                        ARTEMISService.artemisConsole.deleteTopic(mbean, jolokia, name, onSuccess(deleteSuccess));
+                        ARTEMISService.artemisConsole.deleteTopic(mbean, jolokia, name, onSuccess(deleteSuccess, {
+                                                                                            error: function (response) {
+                                                                                               operationFailure(response);
+                                                                                            }
+                                                                                        }));
                     }
                 }
             }
@@ -110,7 +131,11 @@ var ARTEMIS = (function(ARTEMIS) {
                     name = name.replace(/['"]+/g, '');
                     var operation = "purge()";
                     $scope.message = "Purged queue " + name;
-                    ARTEMISService.artemisConsole.purgeQueue(mbean, jolokia, name, onSuccess(deleteSuccess));
+                    ARTEMISService.artemisConsole.purgeQueue(mbean, jolokia, name, onSuccess(deleteSuccess, {
+                                                                                        error: function (response) {
+                                                                                           operationFailure(response);
+                                                                                        }
+                                                                                    }));
                 }
             }
         };

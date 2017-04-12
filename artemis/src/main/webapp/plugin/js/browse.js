@@ -95,6 +95,12 @@ var ARTEMIS = (function(ARTEMIS) {
        };
        $scope.refresh = loadTable;
        ARTEMIS.decorate($scope);
+
+       function operationFailure(response) {
+          Core.defaultJolokiaErrorHandler(response);
+          Core.notification("warning", response['error']);
+       }
+
        $scope.moveMessages = function () {
           var selection = workspace.selection;
           var mbean = selection.objectName;
@@ -107,7 +113,11 @@ var ARTEMIS = (function(ARTEMIS) {
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : moveSuccess;
                    jolokia.execute(mbean, operation, id, $scope.queueName, onSuccess(callback));
-                   ARTEMISService.artemisConsole.moveMessage(mbean, jolokia, id, $scope.queueName, onSuccess(callback));
+                   ARTEMISService.artemisConsole.moveMessage(mbean, jolokia, id, $scope.queueName, onSuccess(callback, {
+                                                                                       error: function (response) {
+                                                                                          operationFailure(response);
+                                                                                       }
+                                                                                   }));
                 }
              });
           }
@@ -132,7 +142,11 @@ var ARTEMIS = (function(ARTEMIS) {
                 var id = item.messageID;
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : operationSuccess;
-                   ARTEMISService.artemisConsole.deleteMessage(mbean, jolokia, id, onSuccess(callback));
+                   ARTEMISService.artemisConsole.deleteMessage(mbean, jolokia, id, onSuccess(callback, {
+                                                                                       error: function (response) {
+                                                                                          operationFailure(response);
+                                                                                       }
+                                                                                   }));
                 }
              });
           }
@@ -149,7 +163,11 @@ var ARTEMIS = (function(ARTEMIS) {
                 if (id) {
                    var callback = (idx + 1 < selectedItems.length) ? intermediateResult : operationSuccess;
                    jolokia.execute(mbean, operation, id, onSuccess(callback));
-                   ARTEMISService.artemisConsole.retryMessage(mbean, jolokia, id, onSuccess(callback));
+                   ARTEMISService.artemisConsole.retryMessage(mbean, jolokia, id, onSuccess(callback, {
+                                                                                       error: function (response) {
+                                                                                          operationFailure(response);
+                                                                                       }
+                                                                                   }));
                 }
              });
           }
@@ -348,7 +366,11 @@ var ARTEMIS = (function(ARTEMIS) {
              else {
                 onDlq(false);
              }
-             ARTEMISService.artemisConsole.browse(objName, jolokia, onSuccess(populateTable));
+             ARTEMISService.artemisConsole.browse(objName, jolokia, onSuccess(populateTable, {
+                                                                                 error: function (response) {
+                                                                                    operationFailure(response);
+                                                                                 }
+                                                                             }));
           }
        }
 
