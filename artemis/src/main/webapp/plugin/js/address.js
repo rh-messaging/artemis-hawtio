@@ -32,6 +32,10 @@ var ARTEMIS = (function(ARTEMIS) {
             Core.notification("success", $scope.message);
             $scope.workspace.loadTree();
         }
+       function operationFailure(response) {
+          Core.defaultJolokiaErrorHandler(response);
+          Core.notification("warning", response['error']);
+       }
         function deleteSuccess() {
             // lets set the selection to the parent
             workspace.removeAndSelectParentNode();
@@ -46,17 +50,29 @@ var ARTEMIS = (function(ARTEMIS) {
                 if (routingType == 0) {
                     $scope.message = "Created  Multicast Address " + name;
                     ARTEMIS.log.info($scope.message);
-                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "MULTICAST", onSuccess(operationSuccess));
+                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "MULTICAST", onSuccess(operationSuccess, {
+                                                error: function (response) {
+                                                   operationFailure(response);
+                                                }
+                                            }));
                 }
                 else if (routingType == 1) {
                     $scope.message = "Created Anycast Address " + name;
                     ARTEMIS.log.info($scope.message);
-                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "ANYCAST", onSuccess(operationSuccess));
+                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "ANYCAST", onSuccess(operationSuccess, {
+                                                                    error: function (response) {
+                                                                       operationFailure(response);
+                                                                    }
+                                                                }));
                 }
                 else {
                     $scope.message = "Created Anycast/Multicast Address " + name;
                     ARTEMIS.log.info($scope.message);
-                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "ANYCAST,MULTICAST", onSuccess(operationSuccess));
+                    ARTEMISService.artemisConsole.createAddress(mbean, jolokia, name, "ANYCAST,MULTICAST", onSuccess(operationSuccess, {
+                                                                    error: function (response) {
+                                                                       operationFailure(response);
+                                                                    }
+                                                                }));
                 }
             }
         };
@@ -77,7 +93,11 @@ var ARTEMIS = (function(ARTEMIS) {
                     ARTEMIS.log.info(name);
                     var operation;
                     $scope.message = "Deleted address " + name;
-                    ARTEMISService.artemisConsole.deleteAddress(mbean, jolokia, name, onSuccess(deleteSuccess));
+                    ARTEMISService.artemisConsole.deleteAddress(mbean, jolokia, name, onSuccess(deleteSuccess, {
+                                                                    error: function (response) {
+                                                                       operationFailure(response);
+                                                                    }
+                                                                }));
                 }
             }
         };

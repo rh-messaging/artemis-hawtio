@@ -114,6 +114,11 @@ var ARTEMIS;
            ARTEMIS.log.info(body);
             doSendMessage(durable, body, sendWorked);
         };
+
+        function operationFailure(response) {
+          Core.defaultJolokiaErrorHandler(response);
+          Core.notification("warning", response['error']);
+        }
         function doSendMessage(durable, body, onSendCompleteFn) {
             var selection = workspace.selection;
             if (selection) {
@@ -140,7 +145,11 @@ var ARTEMIS;
                         headers = {};
                     }
                     var type = 3;
-                    ARTEMISService.artemisConsole.sendMessage(mbean, jolokia, headers, type, body, durable, user, pwd, callback, onSuccess(callback));
+                    ARTEMISService.artemisConsole.sendMessage(mbean, jolokia, headers, type, body, durable, user, pwd, callback, onSuccess(callback, {
+                                                                                        error: function (response) {
+                                                                                           operationFailure(response);
+                                                                                        }
+                                                                                    }));
 
                 }
             }
