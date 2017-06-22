@@ -179,7 +179,20 @@ console.dump(e)
 
       onSubscription: function() {
         self.executeConnectActions();
-        //self.getSchema();
+        var org = $location.search()
+        if (org)
+          org = org.org
+          //QDR.log.info('onSubscription: org is ' + org)
+        if (org && org.length > 0 && org !== "connect") {
+          //QDR.log.info('going to ' + org)
+          self.getSchema(function () {
+            self.setUpdateEntities([])
+            self.topology.get()
+            $location.path(org)
+            $location.search('org', null)
+            $location.replace()
+          });
+        }
       },
 
       startUpdating: function() {
@@ -268,6 +281,9 @@ console.dump(e)
 
       isLargeNetwork: function () {
         return Object.keys(self.topology._nodeInfo).length >= 12
+      },
+      isMSIE: function () {
+        return (document.documentMode || /Edge/.test(navigator.userAgent))
       },
 
       // given an attribute name array, find the value at the same index in the values array
@@ -756,12 +772,12 @@ console.dump(e)
 
 
       getSchema: function(callback) {
-        //QDR.log.debug("getting schema");
+        //QDR.log.info("getting schema");
         var ret;
         self.correlator.request(
           ret = self.sendMgmtQuery('GET-SCHEMA')
         ).then(ret.id, function(response) {
-          //QDR.log.debug("Got schema response");
+          //QDR.log.info("Got schema response");
           // remove deprecated
           for (var entityName in response.entityTypes) {
             var entity = response.entityTypes[entityName]
@@ -955,6 +971,7 @@ console.dump(e)
           return
         }
         self.connectionTimer = setTimeout(function () {
+          connection.close()
           callback({error: "timedout"})
         }, timeout)
         connection.on("connection_open", function (context) {
@@ -964,6 +981,7 @@ console.dump(e)
       },
 
       connect: function(options) {
+        var connection;
         clearTimeout(self.connectionTimer)
         self.topologyInitialized = false;
         if (!self.connected) {
@@ -988,7 +1006,7 @@ console.dump(e)
           }
           var maybeStart = function() {
             if (okay.connection && okay.sender && okay.receiver && self.sendable && !self.connected) {
-              QDR.log.info("okay to start")
+              //QDR.log.info("okay to start")
               self.connected = true;
               self.connection = connection;
               self.sender = sender;
@@ -1006,7 +1024,9 @@ console.dump(e)
 
           // called after connection.open event is fired or connection error has happened
           var connectionCallback = function (options) {
+            //QDR.log.info('connectionCallback called')
             if (!options.error) {
+              //QDR.log.info('there was no error')
               connection = options.connection
               self.version = options.context.connection.properties.version
               QDR.log.debug("connection_opened")
@@ -1015,19 +1035,19 @@ console.dump(e)
               okay.sender = false;
 
               connection.on('disconnected', function(context) {
-                QDR.log.debug("connection disconnected")
+                //QDR.log.info("connection.on(disconnected) called")
                 self.errorText = "Unable to connect"
                 onDisconnect();
               })
               connection.on('connection_close', function(context) {
-                QDR.log.debug("connection closed")
+                //QDR.log.info("connection closed")
                 self.errorText = "Disconnected"
                 onDisconnect();
               })
 
               sender = connection.open_sender();
               sender.on('sender_open', function(context) {
-                QDR.log.debug("sender_opened")
+                //QDR.log.info("sender_opened")
                 okay.sender = true
                 maybeStart()
               })
@@ -1043,13 +1063,19 @@ console.dump(e)
                 }
               });
               receiver.on('receiver_open', function(context) {
-                QDR.log.debug("receiver_opened")
-                okay.receiver = true;
-                maybeStart()
+                //QDR.log.info("receiver_opened")
+                if (receiver.remote && receiver.remote.attach && receiver.remote.attach.source) {
+                  okay.receiver = true;
+                  maybeStart()
+                }
               })
               receiver.on("message", function(context) {
                 self.correlator.resolve(context);
               });
+            } else {
+              //QDR.log.info("there was an error " + options.error)
+              self.errorText = "Unable to connect"
+              onDisconnect();
             }
           }
 
@@ -1058,7 +1084,7 @@ console.dump(e)
           if (!options.connection) {
             QDR.log.debug("rhea.connect was not passed an existing connection")
             options.reconnect = true
-            self.testConnect(options, 10000, connectionCallback)
+            self.testConnect(options, 5000, connectionCallback)
           } else {
             QDR.log.debug("rhea.connect WAS passed an existing connection")
             connectionCallback(options)
@@ -1124,4 +1150,67 @@ function ngGridFlexibleHeightPlugin (opts) {
         self.scope.$watch('catHashKeys()', innerRecalcForData);
         self.scope.$watch(self.grid.config.data, recalcHeightForData);
     };
+}
+
+if (!String.prototype.startsWith) {
+  String.prototype.startsWith = function (searchString, position) {
+    return this.substr(position || 0, searchString.length) === searchString
+  }
+}
+
+if (!String.prototype.endsWith) {
+  String.prototype.endsWith = function(searchString, position) {
+      var subjectString = this.toString();
+      if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+        position = subjectString.length;
+      }
+      position -= searchString.length;
+      var lastIndex = subjectString.lastIndexOf(searchString, position);
+      return lastIndex !== -1 && lastIndex === position;
+  };
+}
+
+// https://tc39.github.io/ecma262/#sec-array.prototype.findIndex
+if (!Array.prototype.findIndex) {
+  Object.defineProperty(Array.prototype, 'findIndex', {
+    value: function(predicate) {
+     // 1. Let O be ? ToObject(this value).
+      if (this == null) {
+        throw new TypeError('"this" is null or not defined');
+      }
+
+      var o = Object(this);
+
+      // 2. Let len be ? ToLength(? Get(O, "length")).
+      var len = o.length >>> 0;
+
+      // 3. If IsCallable(predicate) is false, throw a TypeError exception.
+      if (typeof predicate !== 'function') {
+        throw new TypeError('predicate must be a function');
+      }
+
+      // 4. If thisArg was supplied, let T be thisArg; else let T be undefined.
+      var thisArg = arguments[1];
+
+      // 5. Let k be 0.
+      var k = 0;
+
+      // 6. Repeat, while k < len
+      while (k < len) {
+        // a. Let Pk be ! ToString(k).
+        // b. Let kValue be ? Get(O, Pk).
+        // c. Let testResult be ToBoolean(? Call(predicate, T, « kValue, k, O »)).
+        // d. If testResult is true, return k.
+        var kValue = o[k];
+        if (predicate.call(thisArg, kValue, k, o)) {
+          return k;
+        }
+        // e. Increase k by 1.
+        k++;
+      }
+
+      // 7. Return -1.
+      return -1;
+    }
+  });
 }
