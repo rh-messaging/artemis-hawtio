@@ -4,7 +4,7 @@ Is a HawtIO plugin that allows the viewing and manipulation of topic/queues and 
 
 ## Using
 
-For the ways how to deploy the plugin inside the broker, take a look at [user manual](docs/user-manual.md)
+For the ways how to deploy the plugin inside the broker, take a look at [user manual](../docs/user-manual.md)
 
 
 ## Developing
