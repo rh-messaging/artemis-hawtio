@@ -88,6 +88,9 @@
             <exclude>README.md</exclude>
             <exclude>**/*.properties</exclude>
             <exclude>**/*-min.js</exclude>
+            <exclude>**/*min.js</exclude>
+            <exclude>**/jquery*</exclude>
+            <exclude>**/*min.css</exclude>
           </excludes>
         </configuration>
         <executions>

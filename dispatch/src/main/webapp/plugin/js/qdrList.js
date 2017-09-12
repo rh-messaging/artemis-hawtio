@@ -100,8 +100,8 @@ var QDR = (function(QDR) {
           $scope.fetchingLog = false;
           var statusCode = context.message.application_properties.statusCode;
           if (statusCode < 200 || statusCode >= 300) {
-            Core.notification('error', context.message.application_properties.statusDescription);
-            //QDR.log.debug(context.message.application_properties.statusDescription)
+            Core.notification('error', context.message.statusDescription);
+            QDR.log.info('Error ' + context.message.statusDescription)
             return;
           }
           $scope.logResults = response.filter( function (entry) {
@@ -142,10 +142,10 @@ var QDR = (function(QDR) {
       return;
     }
     // we are currently connected. setup a handler to get notified if we are ever disconnected
-    QDRService.addDisconnectAction( function () {
-      QDRService.redirectWhenConnected("list")
-      $scope.$apply();
-    })
+    var onDisconnect = function () {
+      $timeout(function () { QDRService.redirectWhenConnected("list") })
+    }
+    QDRService.addDisconnectAction( onDisconnect )
 
     $scope.nodes = []
     var excludedEntities = ["management", "org.amqp.management", "operationalEntity", "entity", "configurationEntity", "dummy", "console"];
@@ -301,8 +301,10 @@ var QDR = (function(QDR) {
       if (expand && !updatedDetails && tableRows.length > 0) {
         var row = tableRows[0];
         $scope.selectedRecordName = row.name.value;
-        var node = tree.getNodeByKey($scope.selectedRecordName);
-        node.select(true);
+        if (tree.getNodeByKey) {
+          var node = tree.getNodeByKey($scope.selectedRecordName);
+          node.select(true);
+        }
         updateDetails(row)  // update the table on the right
       }
       scrollTreeDiv.scrollTop(scrollTop)
@@ -328,6 +330,8 @@ var QDR = (function(QDR) {
         value.type = []
         // find all the connector names and populate the select
         QDRService.fetchEntity(currentNode.id, '.connector', ['name'], function (nodeName, dotentity, response) {
+          if (!response.results)
+            return
           $scope.detailFields.some( function (field) {
             if (field.name === 'connector') {
               field.rawtype = response.results.map (function (result) {return result[0]})
@@ -382,6 +386,7 @@ var QDR = (function(QDR) {
           input:          schemaEntity.input,
           type:           schemaEntity.type,
           required:       schemaEntity.required,
+          unique:         schemaEntity.unique,
           selected:       schemaEntity.selected,
           rawtype:        schemaEntity.rawtype,
           disabled:       schemaEntity.disabled,
@@ -457,6 +462,8 @@ var QDR = (function(QDR) {
       }
 
       var gotNodeInfo = function (nodeName, dotentity, response) {
+        if (!response.results)
+          return
         var tableRows = [];
         var records = response.results;
         var aggregates = response.aggregates;
@@ -633,16 +640,18 @@ var QDR = (function(QDR) {
     $scope.$on("$destroy", function( event ) {
       //QDR.log.debug("scope destroyed for qdrList");
       stopUpdating();
+      QDRService.delDisconnectAction( onDisconnect )
     });
 
     function gotMethodResponse (nodeName, entity, response, context) {
       var statusCode = context.message.application_properties.statusCode;
       if (statusCode < 200 || statusCode >= 300) {
-        Core.notification('error', context.message.application_properties.statusDescription);
-        //QDR.log.debug(context.message.application_properties.statusDescription)
+        Core.notification('error', context.message.statusDescription);
+        QDR.log.info('Error ' + context.message.statusDescription)
       } else {
         var note = entity + " " + $filter('Pascalcase')($scope.currentMode.op) + "d"
         Core.notification('success', note);
+        QDR.log.info('Success ' + note)
         $scope.selectMode($scope.modes[0]);
         restartUpdate();
       }
@@ -708,7 +717,7 @@ var QDR = (function(QDR) {
     var serviceReady = false;
     $scope.largeNetwork = QDRService.isLargeNetwork()
     $scope.showExpandCollapseTree = function () {
-      QDR.log.info("showExpandCollapseTree returning " + !QDRService.isMSIE())
+      //QDR.log.info("showExpandCollapseTree returning " + !QDRService.isMSIE())
       return !QDRService.isMSIE()
     }
     // called after we know for sure the schema is fetched and the routers are all ready
@@ -719,7 +728,7 @@ var QDR = (function(QDR) {
       $scope.nodes = QDRService.nodeList().sort(function (a, b) { return a.name.toLowerCase() > b.name.toLowerCase()});
       // unable to get node list? Bail.
       if ($scope.nodes.length == 0) {
-        $location.path("/" + QDR.pluginName + "/connect")
+        $location.path(QDR.pluginRoot + "/connect")
         $location.search('org', "list");
       }
       if (!angular.isDefined($scope.selectedNode)) {
