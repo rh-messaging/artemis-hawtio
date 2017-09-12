@@ -30,7 +30,6 @@
   </properties>
 
   <modules>
-      <module>artemis</module>
       <module>dispatch</module>
   </modules>
 
