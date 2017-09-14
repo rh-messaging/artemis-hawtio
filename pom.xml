@@ -83,7 +83,12 @@
         <version>0.12</version>
         <configuration>
           <reportFile>ratReport.txt</reportFile>
-	  <excludes>ratReport.txt,README.md,**/*.properties,**/*-min.js</excludes>
+	  <excludes>
+            <exclude>ratReport.txt</exclude>
+            <exclude>README.md</exclude>
+            <exclude>**/*.properties</exclude>
+            <exclude>**/*-min.js</exclude>
+          </excludes>
         </configuration>
         <executions>
           <execution>
