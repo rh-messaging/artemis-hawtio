@@ -969,8 +969,10 @@ var QDR = (function(QDR) {
                   .range([height - margin.top - margin.bottom, 0]);
               }
               if (attrs.type == "rate") {
-                area.interpolate("basis"); // rate charts look better smoothed
-                line.interpolate("basis");
+                area.interpolate("linear"); // rate charts look better smoothed, but the tooltop is in the wrong place
+                line.interpolate("linear");
+//                area.interpolate("basis"); // rate charts look better smoothed
+//                line.interpolate("basis");
               } else {
                 area.interpolate("linear"); // don't smooth value charts
                 line.interpolate("linear");

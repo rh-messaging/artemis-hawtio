@@ -944,7 +944,7 @@ var QDR = (function (QDR) {
 
     // get info for a single connection
     $scope.gridModes = [{
-        content: '<a><i class="icon-list"></i> Attriutes</a>',
+        content: '<a><i class="icon-list"></i> Attributes</a>',
         id: 'attributes',
         title: "View attributes"
       },
@@ -1384,9 +1384,10 @@ QDR.log.debug("setting linkFields to [] in selectMode")
     }
 
     // we are currently connected. setup a handler to get notified if we are ever disconnected
-    QDRService.addDisconnectAction( function () {
-      $timeout( function () {QDRService.redirectWhenConnected("overview")} )
-    })
+    var onDisconnect = function () {
+      $timeout(function () { QDRService.redirectWhenConnected("overview") })
+    }
+    QDRService.addDisconnectAction( onDisconnect )
 
     /* --------------------------------------------------
      *
@@ -1399,6 +1400,9 @@ QDR.log.debug("setting linkFields to [] in selectMode")
       var scrollTree = $('.qdr-overview.pane.left .pane-viewport')
       var scrollTop = scrollTree.scrollTop();
       var tree = $("#overtree").dynatree("getTree")
+      if (!tree.getNodeByKey) {
+        return
+      }
       var parentNode = tree.getNodeByKey(parentKey);
       parentNode.removeChildren();
 
@@ -1665,8 +1669,7 @@ QDR.log.debug("newly created node needs to be activated")
     initTreeAndGrid();
     $scope.$on("$destroy", function( event ) {
       clearTimeout(tickTimer)
-      //QDRService.stopUpdating()
-      //QDRService.delUpdatedAction("overview")
+      QDRService.delDisconnectAction( onDisconnect )
     });
 
   }]);

@@ -17,7 +17,7 @@
   <groupId>org.jboss.rh-messaging</groupId>
   <artifactId>messaging-hawtio-plugins</artifactId>
   <name>Messaging Hawtio Plugins</name>
-  <version>1.0.1.CR1</version>
+  <version>1.0.2.CR1</version>
 
   <packaging>pom</packaging>
 
@@ -30,7 +30,6 @@
   </properties>
 
   <modules>
-      <module>artemis</module>
       <module>dispatch</module>
   </modules>
 
@@ -88,6 +87,9 @@
             <exclude>README.md</exclude>
             <exclude>**/*.properties</exclude>
             <exclude>**/*-min.js</exclude>
+            <exclude>**/*min.js</exclude>
+            <exclude>**/jquery*</exclude>
+            <exclude>**/*min.css</exclude>
           </excludes>
         </configuration>
         <executions>

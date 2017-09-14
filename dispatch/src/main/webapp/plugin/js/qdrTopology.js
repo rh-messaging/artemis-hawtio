@@ -292,10 +292,10 @@ QDR.log.debug("attr.description " + attr.description)
         return;
       }
       // we are currently connected. setup a handler to get notified if we are ever disconnected
-      QDRService.addDisconnectAction(function() {
-        QDRService.redirectWhenConnected("topology");
-        $scope.$apply();
-      })
+      var onDisconnect = function () {
+        $timeout(function () { QDRService.redirectWhenConnected("topology") })
+      }
+      QDRService.addDisconnectAction( onDisconnect )
 
       var urlPrefix = $location.absUrl();
       urlPrefix = urlPrefix.split("#")[0]
@@ -399,7 +399,7 @@ QDR.log.debug("attr.description " + attr.description)
           }
           QDRService.ensureAllEntities({entity: ".router"}, function () {
             NewRouterName = genNewName();
-            nodes.push(aNode(id, NewRouterName, "inter-router", '', undefined, nodes.length, x, y, undefined, true));
+            nodes.push(aNode(id, NewRouterName, "inter-router", '', nodes.length, x, y, undefined, undefined, true));
             force.nodes(nodes).links(links).start();
             restart(false);
           })
@@ -489,7 +489,7 @@ QDR.log.debug("attr.description " + attr.description)
       $scope.isFixed = function() {
         if (!$scope.contextNode)
           return false;
-        return ($scope.contextNode.fixed == 1);
+        return ($scope.contextNode.fixed & 1);
       }
 
       var mouseX, mouseY;
@@ -670,7 +670,7 @@ QDR.log.debug("attr.description " + attr.description)
           localStorage[d.name] = angular.toJson({
             x: Math.round(d.x),
             y: Math.round(d.y),
-            fixed: d.fixed ? 1 : 0,
+            fixed: (d.fixed & 1) ? 1 : 0,
           });
         })
       }
@@ -707,6 +707,8 @@ QDR.log.debug("attr.description " + attr.description)
         var client = 1.0;
         for (var id in nodeInfo) {
           var onode = nodeInfo[id];
+          if (!onode['.connection'])
+            return
           var conns = onode['.connection'].results;
           var attrs = onode['.connection'].attributeNames;
           //QDR.log.debug("external client parent is " + parent);
@@ -855,8 +857,8 @@ QDR.log.debug("attr.description " + attr.description)
             if (d3.select('#svg_context_menu').style('display') !== 'block')
               $(document).click();
             d3.select('#svg_context_menu')
-              .style('left', (mouseX + $(document).scrollLeft()) + "px")
-              .style('top', (mouseY + $(document).scrollTop()) + "px")
+              .style('left', (mouseX -1 + $(document).scrollLeft()) + "px")
+              .style('top', (mouseY -1 + $(document).scrollTop()) + "px")
               .style('display', 'block');
           })
           .on('click', function(d) {
@@ -989,10 +991,8 @@ QDR.log.debug("attr.description " + attr.description)
           unknownNodes[unknowns[i].key] = 1
         }
         unknownNodes = Object.keys(unknownNodes)
-          //QDR.log.debug("there were " + unknownNodes.length + " connections with normal links")
-          //console.dump(unknownNodes)
-
-        QDRService.ensureEntities(unknownNodes, {entity: ".router.link", attrs: ["linkType","connectionId","linkDir"], force: true}, function () {
+        //QDR.log.info("-- resolveUnknowns: ensuring .connection and .router.link are present for each node")
+        QDRService.ensureEntities(unknownNodes, [{entity: ".connection", force: true}, {entity: ".router.link", attrs: ["linkType","connectionId","linkDir"], force: true}], function () {
           initializeLinks(nodeInfo, [])
           // collapse any router-container nodes that are duplicates
           animate = true;
@@ -1008,6 +1008,8 @@ QDR.log.debug("attr.description " + attr.description)
             {entity: '.'+entity},
             {entity: '.listener', attrs: ["role", "port"]}], function () {
             var onode = nodeInfo[key]
+            if (!onode['.'+entity])
+              return
             var nodeResults = onode['.' + entity].results[resultIndex]
             var nodeAttributes = onode['.' + entity].attributeNames
             var attributes = nodeResults.map(function(row, i) {
@@ -1030,6 +1032,8 @@ QDR.log.debug("attr.description " + attr.description)
 
             // get the list of ports this router is listening on
             if (entity === 'router') {
+              if (!onode['.listener'])
+                return
               var listeners = onode['.listener'].results;
               var listenerAttributes = onode['.listener'].attributeNames;
               var normals = listeners.filter(function(listener) {
@@ -1145,9 +1149,11 @@ QDR.log.debug("attr.description " + attr.description)
 
           var deltaX = dtx - dsx,
             deltaY = dty - dsy,
-            dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY),
-            normX = deltaX / dist,
-            normY = deltaY / dist;
+            dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+          if (dist == 0)
+            dist = 0.001;
+          var normX = deltaX / dist,
+              normY = deltaY / dist;
           var sourceX = dsx + (sourcePadding * normX),
             sourceY = dsy + (sourcePadding * normY),
             targetX = dtx - (targetPadding * normX),
@@ -1381,8 +1387,8 @@ QDR.log.debug("attr.description " + attr.description)
 
             mousedown_link = d;
             d3.select('#link_context_menu')
-              .style('left', (mouseX + $(document).scrollLeft()) + "px")
-              .style('top', (mouseY + $(document).scrollTop()) + "px")
+              .style('left', (mouseX -1 + $(document).scrollLeft()) + "px")
+              .style('top', (mouseY -1 + $(document).scrollTop()) + "px")
               .style('display', 'block');
           })
           // left click a path
@@ -1508,7 +1514,7 @@ QDR.log.debug("attr.description " + attr.description)
             return (d === selected_node)
           })
           .classed('fixed', function(d) {
-            return d.fixed
+            return d.fixed & 1
           })
 
         // add new circle nodes. if nodes[] is longer than the existing paths, add a new path for each new element
@@ -1531,7 +1537,7 @@ QDR.log.debug("attr.description " + attr.description)
               return null;
             })
             .classed('fixed', function(d) {
-              return d.fixed
+              return d.fixed & 1
             })
             .classed('temp', function(d) {
               return QDRService.nameFromId(d.key) == '__internal__';
@@ -1576,7 +1582,7 @@ QDR.log.debug("attr.description " + attr.description)
               d3.select(this).attr('transform', 'scale(1.1)');
               return;
             }
-            if (!selected_node) {
+            if (!selected_node && !mousedown_node) {
               if (d.nodeType === 'inter-router') {
                 //QDR.log.debug("showing general form");
                 updateForm(d.key, 'router', 0);
@@ -1593,7 +1599,7 @@ QDR.log.debug("attr.description " + attr.description)
             // enlarge target node
             d3.select(this).attr('transform', 'scale(1.1)');
             // highlight the next-hop route from the selected node to this node
-            mousedown_node = null;
+            //mousedown_node = null;
 
             if (!selected_node) {
               return;
@@ -1689,13 +1695,11 @@ QDR.log.debug("attr.description " + attr.description)
           .on("contextmenu", function(d) {  // circle
             $(document).click();
             d3.event.preventDefault();
-            $scope.contextNode = d;
-            if (!$scope.$$phase) $scope.$apply() // we just changed a scope valiable during an async event
+            $timeout(function () {$scope.contextNode = d})
             d3.select('#node_context_menu')
-              .style('left', (mouseX + $(document).scrollLeft()) + "px")
-              .style('top', (mouseY + $(document).scrollTop()) + "px")
+              .style('left', (mouseX -1 + $(document).scrollLeft()) + "px")
+              .style('top', (mouseY -1 + $(document).scrollTop()) + "px")
               .style('display', 'block');
-
           })
           .on("click", function(d) {  // circle
             if (!mouseup_node)
@@ -2102,7 +2106,7 @@ QDR.log.debug("attr.description " + attr.description)
             savedKeys[key] = nodeInfo[key]['.connection'].results.length;
         }
         //QDR.log.debug("saving current keys");
-        console.dump(savedKeys);
+        //console.dump(savedKeys);
       };
       // we are about to leave the page, save the node positions
       $rootScope.$on('$locationChangeStart', function(event, newUrl, oldUrl) {
@@ -2120,6 +2124,7 @@ QDR.log.debug("attr.description " + attr.description)
         QDRService.stopUpdating();
         QDRService.delUpdatedAction("normalsStats");
         QDRService.delUpdatedAction("topology");
+        QDRService.delDisconnectAction( onDisconnect )
         d3.select("#SVG_ID").remove();
         window.removeEventListener('resize', resize);
       });

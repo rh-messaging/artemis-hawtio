@@ -62,6 +62,13 @@ var QDR = (function(QDR) {
           self.disconnectActions.push(action);
         }
       },
+      delDisconnectAction: function(action) {
+        if (angular.isFunction(action)) {
+          var index = self.disconnectActions.indexOf(action)
+          if (index >= 0)
+            self.disconnectActions.splice(index, 1)
+        }
+      },
       addUpdatedAction: function(key, action) {
         if (angular.isFunction(action)) {
           self.updatedActions[key] = action;
@@ -74,11 +81,11 @@ var QDR = (function(QDR) {
 
       executeConnectActions: function() {
         self.connectActions.forEach(function(action) {
-          //QDR.log.debug("executing connect action " + action);
           try {
             action.apply();
           } catch (e) {
             // in case the page that registered the handler has been unloaded
+            QDR.log.info(e.message)
           }
         });
         self.connectActions = [];
@@ -106,14 +113,14 @@ console.dump(e)
         }
       },
       redirectWhenConnected: function(org) {
-        $location.path("/connect")
+        $location.path(QDR.pluginRoot + "/connect")
         $location.search('org', org);
       },
 
       notifyTopologyDone: function() {
         if (!self.gotTopology) {
           QDR.log.debug("topology was just initialized");
-          console.dump(self.topology._nodeInfo)
+          //console.dump(self.topology._nodeInfo)
           self.gotTopology = true;
           //$rootScope.$apply();
         } else {
@@ -182,15 +189,18 @@ console.dump(e)
         var org = $location.search()
         if (org)
           org = org.org
-          //QDR.log.info('onSubscription: org is ' + org)
         if (org && org.length > 0 && org !== "connect") {
-          //QDR.log.info('going to ' + org)
           self.getSchema(function () {
             self.setUpdateEntities([])
             self.topology.get()
-            $location.path(org)
-            $location.search('org', null)
-            $location.replace()
+            self.addUpdatedAction('onSub', function () {
+              self.delUpdatedAction('onSub')
+              $timeout( function () {
+                $location.path(QDR.pluginRoot + '/' + org)
+                $location.search('org', null)
+                $location.replace()
+              })
+            })
           });
         }
       },
@@ -219,9 +229,6 @@ console.dump(e)
           QDR.log.info("stopUpdating called")
       },
 
-      initProton: function() {
-        //QDR.log.debug("*************QDR init proton called ************");
-      },
       cleanUp: function() {},
       error: function(line) {
         if (line.num) {
@@ -340,7 +347,8 @@ console.dump(e)
         function gotMethodResponse(nodeName, entity, response, context) {
           var statusCode = context.message.application_properties.statusCode;
           if (statusCode < 200 || statusCode >= 300) {
-            Core.notification('error', context.message.application_properties.statusDescription);
+            Core.notification('error', context.message.statusDescription);
+            QDR.log.info('Error ' + context.message.statusDescription)
           }
         }
         var attributes = {
@@ -534,10 +542,8 @@ console.dump(e)
             self.topology._getTimer = null
           }
 
-          //QDR.log.debug("starting get topology with correlator.depth of " + self.correlator.depth())
-          //self.topology._lastNodeInfo = angular.copy(self.topology._nodeInfo);
+          //QDR.log.info("starting get topology with correlator.depth of " + self.correlator.depth())
           self.topology._gettingTopo = true;
-
           self.errorText = undefined;
 
           // get the list of nodes to query.
@@ -557,8 +563,8 @@ console.dump(e)
                 var parts = self.receiver.remote.attach.source.address.split('/')
                 parts[4] = '$management'
                 response.push(parts.join('/'))
-                QDR.log.debug("GET-MGMT-NODES returned an empty list. Using ")
-                console.dump(response)
+                //QDR.log.info("GET-MGMT-NODES returned an empty list. Using ")
+                //console.dump(response)
               }
               for (var i=0; i<response.length; ++i) {
                 if (!angular.isDefined(self.topology._nodeInfo[response[i]])) {
@@ -941,48 +947,54 @@ console.dump(e)
 
       disconnect: function() {
         self.connection.close();
+        self.connected = false
         self.errorText = "Disconnected."
       },
 
       connectionTimer: null,
 
       testConnect: function (options, timeout, callback) {
-        clearTimeout(self.connectionTimer)
         var connection;
+        var allowDelete = true;
         var reconnect = angular.isDefined(options.reconnect) ? options.reconnect : false
         var baseAddress = options.address + ':' + options.port;
         var protocol = "ws"
         if ($location.protocol() === "https")
           protocol = "wss"
-        QDR.log.debug("testConnect called with reconnect " + reconnect + " using " + protocol + " protocol")
+        QDR.log.info("testConnect called with reconnect " + reconnect + " using " + protocol + " protocol")
         try {
-            var ws = self.rhea.websocket_connect(WebSocket);
-            connection = self.rhea.connect({
+          var ws = self.rhea.websocket_connect(WebSocket);
+          connection = self.rhea.connect({
             connection_details: ws(protocol + "://" + baseAddress, ["binary"]),
             reconnect: reconnect,
-            properties: {
-              console_identifier: 'Dispatch console'
+              properties: {
+                console_identifier: 'Dispatch console'
+              }
             }
-          });
+          );
         } catch (e) {
           QDR.log.debug("exception caught on test connect " + e)
           self.errorText = "Connection failed "
           callback({error: e})
           return
         }
-        self.connectionTimer = setTimeout(function () {
-          connection.close()
-          callback({error: "timedout"})
-        }, timeout)
+        // called when initial connecting fails, and when connection is dropped after connecting
+        connection.on('disconnected', function(context) {
+          if (allowDelete) {
+            delete connection
+            connection.options.reconnect = false
+            //QDR.log.info("connection.on(disconnected) called")
+            callback({error: "failed to connect"})
+          }
+        })
         connection.on("connection_open", function (context) {
-          clearTimeout(self.connectionTimer)
+          allowDelete = false;
           callback({connection: connection, context: context})
         })
       },
 
       connect: function(options) {
         var connection;
-        clearTimeout(self.connectionTimer)
         self.topologyInitialized = false;
         if (!self.connected) {
           var okay = {
@@ -1011,8 +1023,8 @@ console.dump(e)
               self.connection = connection;
               self.sender = sender;
               self.receiver = receiver;
-              self.onSubscription();
               self.gotTopology = false;
+              self.onSubscription();
             }
           }
           var onDisconnect = function() {
@@ -1080,7 +1092,6 @@ console.dump(e)
           }
 
           QDR.log.debug("****** calling rhea.connect ********")
-          var connection;
           if (!options.connection) {
             QDR.log.debug("rhea.connect was not passed an existing connection")
             options.reconnect = true
@@ -1120,6 +1131,8 @@ function ngGridFlexibleHeightPlugin (opts) {
         var innerRecalcForData = function () {
             var gridId = self.grid.gridId;
             var footerPanelSel = '.' + gridId + ' .ngFooterPanel';
+            if (!self.grid.$topPanel || !self.grid.$canvas)
+              return;
             var extraHeight = self.grid.$topPanel.height() + $(footerPanelSel).height();
             var naturalHeight = self.grid.$canvas.height() + 1;
             if (opts != null) {
