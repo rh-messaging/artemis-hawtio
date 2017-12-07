@@ -325,7 +325,9 @@ var QDR = (function (QDR) {
             if (addr[0] == 'A')  return "area"
             if (addr[0] == 'L')  return "local"
             if (addr[0] == 'C')  return "link-incoming"
+            if (addr[0] == 'E')  return "link-incoming"
             if (addr[0] == 'D')  return "link-outgoing"
+            if (addr[0] == 'F')  return "link-outgoing"
             if (addr[0] == 'T')  return "topo"
             return "unknown: " + addr[0]
       }
@@ -1421,7 +1423,12 @@ QDR.log.debug("newly created node needs to be activated")
           activated(newActive)
         }
       }
-     }
+      $('.dynatree-title').each( function (idx) {
+        //QDR.log.info('found a title of ' + $(this).html())
+        var unsafe = $(this).html()
+        $(this).html(unsafe.replace(/</g, "&lt;").replace(/>/g, "&gt;"))
+      })
+   }
 
     // get saved tree state
     var lastKey = loadActivatedNode();

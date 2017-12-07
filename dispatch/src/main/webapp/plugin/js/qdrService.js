@@ -175,7 +175,7 @@ console.dump(e)
         },
         // called by receiver's on('message') handler when a response arrives
         resolve: function(context) {
-          var correlationID = context.message.properties.correlation_id;
+          var correlationID = context.message.correlation_id;
           this._objects[correlationID].resolver(context.message.body, context);
           delete this._objects[correlationID];
         },
@@ -243,7 +243,12 @@ console.dump(e)
       },
 
       nameFromId: function(id) {
-        return id.split('/')[3];
+        // the router id looks like 'amqp:/topo/0/routerName/$managemrnt'
+        var parts = id.split('/')
+        // handle cases where the router name contains a /
+        parts.splice(0, 3)  // remove amqp, topo, 0
+        parts.pop()         // remove $management
+        return parts.join('/')
       },
 
       humanify: function(s) {
@@ -303,11 +308,11 @@ console.dump(e)
       },
 
       isArtemis: function(d) {
-        return d.nodeType === 'route-container' && d.properties.product === 'apache-activemq-artemis';
+        return (d.nodeType === 'route-container' || d.nodeType === 'on-demand') && (d.properties && d.properties.product === 'apache-activemq-artemis');
       },
 
       isQpid: function(d) {
-        return d.nodeType === 'on-demand' && (d.properties && d.properties.product === 'qpid-cpp');
+        return (d.nodeType === 'route-container' || d.nodeType === 'on-demand') && (d.properties && d.properties.product === 'qpid-cpp');
       },
 
       isAConsole: function(properties, connectionId, nodeType, key) {
@@ -372,7 +377,9 @@ console.dump(e)
         if (addr[0] == 'A') return "area"
         if (addr[0] == 'L') return "local"
         if (addr[0] == 'C') return "link-incoming"
+        if (addr[0] == 'E') return "link-incoming"
         if (addr[0] == 'D') return "link-outgoing"
+        if (addr[0] == 'F') return "link-outgoing"
         if (addr[0] == 'T') return "topo"
         return "unknown: " + addr[0]
       },
@@ -561,7 +568,7 @@ console.dump(e)
               // if there is only one node, it will not be returned
               if (response.length === 0) {
                 var parts = self.receiver.remote.attach.source.address.split('/')
-                parts[4] = '$management'
+                parts[parts.length-1] = '$management'
                 response.push(parts.join('/'))
                 //QDR.log.info("GET-MGMT-NODES returned an empty list. Using ")
                 //console.dump(response)
@@ -801,8 +808,8 @@ console.dump(e)
             }
           }
           self.schema = response;
+          callback()
         }, ret.error);
-        callback()
       },
 
       getNodeInfo: function(nodeName, entity, attrs, q, callback) {
@@ -866,11 +873,9 @@ console.dump(e)
           }
           var msg = {
             body: attrs,
-            properties: {
-              to: fullAddr,
-              reply_to: self.receiver.remote.attach.source.address,
-              correlation_id: ret.id
-            },
+            to: fullAddr,
+            reply_to: self.receiver.remote.attach.source.address,
+            correlation_id: ret.id,
             application_properties: application_properties
           }
           self.sender.send(msg);
@@ -930,11 +935,9 @@ console.dump(e)
 
           self.sender.send({
             body: body,
-            properties: {
-              to: to,
-              reply_to: self.receiver.remote.attach.source.address,
-              correlation_id: ret.id
-            },
+            to: to,
+            reply_to: self.receiver.remote.attach.source.address,
+            correlation_id: ret.id,
             application_properties: application_properties
           })
         } catch (e) {
